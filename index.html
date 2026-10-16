@@ -398,11 +398,6 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
         <input type="radio" name="simplify" id="simpYes" value="yes"><label for="simpYes">Simplify</label>
         <input type="radio" name="simplify" id="simpNo" value="no"><label for="simpNo">Do not simplify</label>
       </div>
-      <div class="seg">
-        <input type="radio" name="fractype" id="ftProper" value="proper"><label for="ftProper">Proper</label>
-        <input type="radio" name="fractype" id="ftImproper" value="improper"><label for="ftImproper">Improper</label>
-      </div>
-      <div class="hint" id="fracTypeHint"></div>
     </div>
     <div class="checks">
       <label><input type="checkbox" id="optLabels"> Fraction labels</label>
@@ -447,7 +442,7 @@ const frHTML = (n, d) => d === 1 ? `${n}` : `<span class="fr"><span>${n}</span><
 const plural = (k, w) => `${k} ${w}${k === 1 ? '' : 's'}`;
 
 // ---------- settings ----------
-const S = { mode: 'practice', labels: true, totals: true, denoms: [2, 3, 4], simplify: false, fracType: 'improper' };
+const S = { mode: 'practice', labels: true, totals: true, denoms: [2, 3, 4], simplify: false };
 try { Object.assign(S, JSON.parse(localStorage.getItem('fs-settings') || '{}')); } catch (e) {}
 let best = 0;
 try { best = +localStorage.getItem('fs-best') || 0; } catch (e) {}
@@ -482,10 +477,6 @@ function newRound(same) {
     if (Math.random() < 0.5) [a, b] = [b, a];
     const num = d => info.nOne ? 1 : 1 + Math.floor(Math.random() * (d - 1));
     G.kinds = [{ n: num(a), d: a }, { n: num(b), d: b }];
-    // "Proper": pick numerators so the two fractions add up to 1 whole or less (1/a + 1/b always does)
-    for (let t = 0; S.fracType === 'proper' && G.kinds[0].n * b + G.kinds[1].n * a > a * b; t++) {
-      G.kinds = t < 40 ? [{ n: num(a), d: a }, { n: num(b), d: b }] : [{ n: 1, d: a }, { n: 1, d: b }];
-    }
   }
   const L = lcm(G.kinds[0].d, G.kinds[1].d);
   G.target = L;
@@ -895,8 +886,6 @@ function syncForm() {
   $('#modeLevels').checked = S.mode === 'levels';
   $('#modePractice').checked = S.mode === 'practice';
   $('#simpYes').checked = !!S.simplify; $('#simpNo').checked = !S.simplify;
-  $('#ftProper').checked = S.fracType === 'proper'; $('#ftImproper').checked = S.fracType !== 'proper';
-  $('#fracTypeHint').textContent = S.fracType === 'proper' ? 'Sums stay at 1 whole or less.' : 'Sums can be more than 1 whole.';
   $('#optLabels').checked = S.labels; $('#optTotals').checked = S.totals;
   for (const d of ALL_D) $('#den' + d).checked = S.denoms.includes(d);
   updateAllChip();
@@ -917,7 +906,6 @@ function updateDenomHint() {
 }
 document.querySelectorAll('input[name=mode]').forEach(i => i.addEventListener('change', () => { S.mode = i.value; saveSettings(); syncForm(); }));
 document.querySelectorAll('input[name=simplify]').forEach(i => i.addEventListener('change', () => { S.simplify = i.value === 'yes'; saveSettings(); }));
-document.querySelectorAll('input[name=fractype]').forEach(i => i.addEventListener('change', () => { S.fracType = i.value; saveSettings(); syncForm(); }));
 $('#optLabels').addEventListener('change', e => { S.labels = e.target.checked; saveSettings(); });
 $('#optTotals').addEventListener('change', e => { S.totals = e.target.checked; saveSettings(); updateHUD(); });
 for (const d of ALL_D) $('#den' + d).addEventListener('change', () => {
