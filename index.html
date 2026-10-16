@@ -915,7 +915,6 @@ $('#retryBtn').addEventListener('click', () => { newRound(true); resumeView(); }
 // the directions screen is split into pages: 2 = how to play, 3 = mode, 4 = fractions (Practice only), 5 = answers and Play
 function showStartPage(n) {
   document.querySelectorAll('#startPanel .page').forEach(pg => { pg.hidden = +pg.dataset.page !== n; });
-  $('#startTitle').hidden = n === 3;   // the Mode page has no title
   const first = $(`#startPanel .page[data-page="${n}"] .page-btns .primary`);
   if (first) setTimeout(() => first.focus({ preventScroll: true }), 0);
   $('#startPanel').scrollTop = 0; $('#modal').scrollTop = 0;
