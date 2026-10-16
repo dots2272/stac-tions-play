@@ -224,6 +224,7 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
 .card h2 { font-family: var(--display); font-weight: 800; font-size: 30px; margin: 0; line-height: 1.05; text-wrap: balance; }
 .card p { margin: 0; color: var(--muted); }
 .rules { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.mode-steps { margin: 0; padding-left: 22px; font-weight: 700; color: var(--ink); }
 .rules.steps { font-family: var(--display); font-weight: 700; font-size: 20px; line-height: 1.25; gap: 6px; padding-left: 26px; }
 .field { display: grid; gap: 6px; }
 .seg { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -372,6 +373,9 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
     <p class="hint">← → pick a column &nbsp;·&nbsp; Space drops &nbsp;·&nbsp; or just tap a column</p>
     <div class="field">
       <div class="label">Mode</div>
+      <ol class="mode-steps">
+        <li>Do a few <b>Practice</b> rounds before <b>Play</b> rounds.</li>
+      </ol>
       <div class="seg">
         <input type="radio" name="mode" id="modePractice" value="practice"><label for="modePractice">Practice</label>
         <input type="radio" name="mode" id="modeLevels" value="levels"><label for="modeLevels">Play</label>
