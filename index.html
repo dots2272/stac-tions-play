@@ -1,0 +1,1242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="format-detection" content="telephone=no">
+<title>Stac-Tions</title>
+<meta name="description" content="Stac-Tions: a free fraction game. Stack fractions until both columns are the same height to find a common denominator, then add, subtract and simplify.">
+<meta name="theme-color" content="#1C2434">
+<meta property="og:title" content="Stac-Tions">
+<meta property="og:description" content="Stac-Tions: a free fraction game. Stack fractions until both columns are the same height to find a common denominator, then add, subtract and simplify.">
+<meta property="og:image" content="icons/icon-512.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Stac-Tions">
+<style>
+@font-face { font-family: "Baloo 2"; font-style: normal; font-weight: 400 800; font-display: swap; src: url("fonts/baloo2-latin.woff2") format("woff2"); }
+@font-face { font-family: "Atkinson Hyperlegible"; font-style: normal; font-weight: 400; font-display: swap; src: url("fonts/atkinson-400-latin.woff2") format("woff2"); }
+@font-face { font-family: "Atkinson Hyperlegible"; font-style: normal; font-weight: 700; font-display: swap; src: url("fonts/atkinson-700-latin.woff2") format("woff2"); }
+/* what the web host's page wrapper provided */
+:root { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; font-size: 14px; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+/* app feel: no text selection, long-press menus or double-tap zoom (answer boxes still work) */
+body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+input { -webkit-user-select: text; user-select: text; }
+
+/* Layout: one-screen arcade cabinet — stats rail | the two-column board | wholes log. Stacks to one column on phones. */
+:root {
+  --bg: #E7ECF4;
+  --panel: #FFFFFF;
+  --ink: #18202E;
+  --muted: #5A6578;
+  --line: #D2DAE6;
+  --accent: #2F6FDB;
+  --accent-ink: #FFFFFF;
+  --danger: #C93F33;
+  --good: #1A8F5F;
+  --chip: #EEF2F8;
+  --col0: #0B8FA3;
+  --col1: #B8327F;
+  --board-frame: #0B0F18;
+  --display: "Baloo 2", "Trebuchet MS", system-ui, sans-serif;
+  --body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E131C; --panel: #171E2A; --ink: #E6ECF5; --muted: #95A2B6; --line: #2A3445;
+    --accent: #6EA4FF; --accent-ink: #0B1220; --danger: #FF7B6B; --good: #4FD39C; --chip: #1F2836; --col0: #5EE0F0; --col1: #FF8AD8;
+    --board-frame: #05070C; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E131C; --panel: #171E2A; --ink: #E6ECF5; --muted: #95A2B6; --line: #2A3445;
+  --accent: #6EA4FF; --accent-ink: #0B1220; --danger: #FF7B6B; --good: #4FD39C; --chip: #1F2836; --col0: #5EE0F0; --col1: #FF8AD8;
+  --board-frame: #05070C; color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.45; }
+* { box-sizing: border-box; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+.top {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding-block: 12px 4px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  max-width: 1080px; margin: 0 auto;
+}
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand h1 { font-family: var(--display); font-weight: 800; font-size: 26px; line-height: 1; margin: 0; letter-spacing: -0.01em; }
+.logo { width: 22px; height: 34px; color: var(--ink); }
+.ghost-btn {
+  border: 2px solid var(--line); background: var(--panel); border-radius: 10px; padding: 6px 14px;
+  font-weight: 700; cursor: pointer;
+}
+.ghost-btn:hover { border-color: var(--accent); }
+
+.app {
+  display: grid; grid-template-columns: 210px auto 230px; justify-content: center; align-items: start; gap: 28px;
+  padding-block: 10px 20px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+.label { font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
+.stats { display: grid; gap: 14px; }
+.stat .val { font-family: var(--display); font-weight: 800; font-size: 30px; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.stat .sub { color: var(--muted); font-size: 13px; }
+.progress { height: 8px; border-radius: 99px; background: var(--chip); overflow: hidden; margin-top: 6px; }
+.progress span { display: block; height: 100%; width: 0; background: var(--good); border-radius: 99px; transition: width .3s; }
+.hearts { font-size: 24px; letter-spacing: 3px; color: var(--danger); line-height: 1.1; }
+.hearts .lost { color: var(--line); }
+#nextCanvas { display: block; width: 96px; height: 96px; margin-top: 6px; }
+
+.stage { display: flex; flex-direction: column; align-items: center; gap: 10px; min-width: 0; }
+.msg {
+  min-height: 46px; width: 100%; max-width: 420px; display: flex; align-items: center; justify-content: center;
+  text-align: center; font-weight: 700; font-size: 16px; padding: 4px 12px; border-radius: 12px;
+  background: var(--panel); border: 1px solid var(--line); color: var(--muted);
+}
+.msg.good { color: var(--good); border-color: color-mix(in srgb, var(--good) 45%, var(--line)); }
+.msg.bad { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 45%, var(--line)); }
+.fr { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; line-height: 1; font-size: 0.82em; margin: 0 2px; font-variant-numeric: tabular-nums; }
+.fr span:first-child { border-bottom: 2px solid currentColor; padding: 0 2px 1px; }
+.fr span:last-child { padding-top: 1px; }
+
+.boardwrap { position: relative; border: 4px solid var(--board-frame); border-radius: 12px; background: var(--board-frame); box-shadow: 0 10px 30px rgba(10, 16, 30, .25); }
+#board { display: block; touch-action: none; border-radius: 8px; cursor: pointer; }
+.totals { display: grid; grid-template-columns: 1fr 1fr; font-weight: 700; color: var(--muted); font-size: 14px; text-align: center; font-variant-numeric: tabular-nums; }
+.totals b { color: var(--ink); font-family: var(--display); font-size: 18px; }
+.totals > div { display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 26px; }
+.totals .kind { display: inline-flex; align-items: center; gap: 2px; }
+.stars { font-size: 34px; letter-spacing: 4px; color: #F6B23C; line-height: 1; }
+.stars .off { color: var(--line); }
+.roundbox { width: 100%; max-width: 420px; display: grid; gap: 10px; }
+/* the add/subtract/simplify pop-up: a small copy of the capped columns beside the problems */
+.card.work { max-width: 860px; }
+.work-grid { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 20px; align-items: start; }
+.work-main { display: grid; gap: 12px; min-width: 0; }
+#mini { display: block; border-radius: 10px; border: 3px solid var(--board-frame); background: #141A26; position: sticky; top: 0; }
+.work .board-combine { position: static; width: auto; box-shadow: none; }
+@media (max-width: 720px) { .work-grid { grid-template-columns: minmax(0, 1fr); } #mini { justify-self: center; position: static; } }
+.roundhead { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.roundbox h2 { font-family: var(--display); font-weight: 800; font-size: 26px; margin: 0; line-height: 1.05; }
+.roundbox p { margin: 0; }
+.roundbox .summary { font-size: 20px; font-weight: 700; }
+.roundbox .note { color: var(--muted); }
+.roundbox .stars { font-size: 28px; }
+.combine { display: grid; gap: 8px; border-top: 1px solid var(--line); padding-top: 12px; }
+.repeat { display: grid; gap: 10px; border-top: 1px solid var(--line); padding-top: 12px; }
+#repeatRows { display: grid; gap: 10px; }
+.rcol { display: grid; gap: 4px; padding: 10px 12px; border-radius: 10px; background: var(--chip); }
+.rcol .side { font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
+.rcol .sum { font-family: var(--display); font-weight: 800; font-size: 20px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.rcol .sum .times { color: var(--accent); }
+.rcol .eqv { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-weight: 700; font-size: 17px; }
+.rcol .eqv .fr { font-size: 0.9em; }
+.rcol .eqv .times { color: var(--accent); }
+.rcol .times.c0, .rcol .c0 { color: var(--col0); }
+.rcol .times.c1, .rcol .c1 { color: var(--col1); }
+.board-combine { position: absolute; z-index: 2; border: 2px solid #F6B23C; border-radius: 12px; padding: 12px 14px; gap: 8px;
+  background: rgba(14, 18, 28, 0.95); color: #FFFFFF; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45); }
+.board-combine .label { color: rgba(255, 255, 255, 0.7); }
+.board-combine .eqline { font-size: 21px; gap: 5px; }
+.board-combine .combine-work { gap: 8px; flex-wrap: wrap; }
+.board-combine .eqline { flex-wrap: wrap; row-gap: 4px; }
+.simp { display: inline-flex; align-items: center; gap: 4px; }
+.board-combine .simp > input { width: 1.9em; font: inherit; font-size: 0.95em; text-align: center; padding: 0; border: 2px solid #F6B23C;
+  border-radius: 6px; background: #1F2738; color: #FFFFFF; -moz-appearance: textfield; }
+.board-combine .combine-work.done .simp > input { border-color: #4FD39C; color: #4FD39C; }
+/* denominator blocks: one unit block per part of the common denominator; tap to mark an X */
+/* the picture under each solved problem: unit blocks with X's, grouped, and the simplest form below */
+.dblocks { flex-basis: 100%; display: grid; gap: 3px; margin-top: 2px; }
+.gline { display: flex; align-items: center; gap: 6px; }
+.gline .glabel { width: 30px; flex: none; font-family: var(--display); font-weight: 800; font-size: 15px; display: flex; justify-content: center; }
+.gline .glabel .fr { font-size: 0.95em; }
+.units { flex: 1; display: flex; gap: 4px; min-width: 0; }
+.units.solid { gap: 1px; }
+.grp { flex: 1 1 0; display: flex; gap: 1px; min-width: 0; }
+.grouped .grp { border-bottom: 3px solid #F6B23C; padding-bottom: 2px; }
+.ub { flex: 1 1 0; min-width: 0; height: 22px; border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 3px; background: #1F2738;
+  color: #161B27; font: 800 13px/20px var(--display); text-align: center; }
+.ub.big { height: 26px; line-height: 24px; font-size: 15px; }
+.ub.x0 { background: #5EE0F0; border-color: #5EE0F0; }
+.ub.x1 { background: #FF8AD8; border-color: #FF8AD8; }
+.ub.xs { background: #F6B23C; border-color: #F6B23C; }
+.ub.xr { background: transparent; border-style: dashed; color: rgba(255, 255, 255, 0.45); text-decoration: line-through; }
+.gtag { justify-content: center; font-family: var(--display); font-weight: 800; font-size: 13px; color: #F6B23C; }
+.gtag .fr { font-size: 0.95em; }
+.gcap { font-size: 14px; font-weight: 700; color: #F6B23C; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.gcap .fr { font-size: 0.95em; }
+.reveal { animation: reveal 0.5s ease 0.6s both; }
+@keyframes reveal { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .reveal { animation: none; } }
+.board-combine .fr-in input { background: #1F2738; color: #FFFFFF; border-color: #F6B23C; width: 2em; }
+.board-combine .primary.small { font-size: 15px; padding: 6px 12px; background: #6EA4FF; color: #0B1220; }
+.board-combine .combine-work { column-gap: 6px; }
+.board-combine .combine-work .tick { color: #4FD39C; font-size: 22px; }
+.board-combine.combine .combine-work.done input { border-color: #4FD39C; color: #4FD39C; }
+.board-combine #combineMsg { font-size: 15px; color: rgba(255, 255, 255, 0.75); min-height: 1.4em; }
+.board-combine #combineMsg.good { color: #4FD39C; }
+.board-combine #combineMsg.bad { color: #FF8A7A; }
+.combine-work .tick { font-size: 26px; font-weight: 800; color: var(--good); visibility: hidden; }
+.combine-work.done .tick { visibility: visible; }
+.combine-work.done button { display: none; }
+.combine-work.done input { border-color: var(--good); color: var(--good); }
+.combine-work { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.eqline { display: flex; align-items: center; gap: 8px; font-family: var(--display); font-weight: 800; font-size: 26px; }
+.fr-in input { width: 2.4em; font: inherit; font-size: 0.95em; text-align: center; border: 2px solid var(--accent); border-radius: 6px; background: var(--panel); color: var(--ink); padding: 0; margin-bottom: 3px; -moz-appearance: textfield; }
+.fr-in input::-webkit-inner-spin-button, .fr-in input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.primary.small { font-size: 17px; padding: 8px 18px; }
+#combineMsg { margin: 0; font-size: 15px; color: var(--muted); }
+#combineMsg.good { color: var(--good); font-weight: 700; }
+#combineMsg.bad { color: var(--danger); font-weight: 700; }
+.pad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; width: 100%; max-width: 360px; }
+.pad button {
+  border: 2px solid var(--line); background: var(--panel); border-radius: 12px; padding: 10px 4px;
+  font-weight: 700; font-size: 14px; cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: manipulation;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.pad button .ic { font-size: 20px; line-height: 1; }
+.pad button:active { background: var(--chip); border-color: var(--accent); }
+.pad .drop { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.pad .drop:active { background: var(--accent); filter: brightness(.92); }
+
+.log { display: grid; gap: 14px; }
+.log h2 { font-family: var(--display); font-size: 19px; margin: 0; line-height: 1.1; }
+.wholes-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.wholes-list li { padding: 8px 10px; border-radius: 10px; background: var(--chip); font-weight: 700; font-size: 15px; }
+.wholes-list .empty { background: none; padding: 0; font-weight: 400; color: var(--muted); font-size: 14px; }
+.keys { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; font-size: 13px; color: var(--muted); align-items: center; }
+kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--ink); background: var(--chip); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px; padding: 1px 6px; white-space: nowrap; }
+
+/* modal */
+.modal { position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; padding: 16px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); background: rgba(8, 12, 20, .55); overflow-y: auto; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 22px; width: 100%; max-width: 460px; display: grid; gap: 16px; box-shadow: 0 20px 50px rgba(0,0,0,.3); margin: auto; }
+.card h2 { font-family: var(--display); font-weight: 800; font-size: 30px; margin: 0; line-height: 1.05; text-wrap: balance; }
+.card p { margin: 0; color: var(--muted); }
+.rules { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.rules.steps { font-family: var(--display); font-weight: 700; font-size: 20px; line-height: 1.25; gap: 6px; padding-left: 26px; }
+.field { display: grid; gap: 6px; }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label { border: 2px solid var(--line); border-radius: 10px; padding: 6px 12px; font-weight: 700; cursor: pointer; background: var(--panel); }
+.all-chip { border: 2px solid #C98A12; border-radius: 10px; padding: 6px 14px; font-weight: 800; cursor: pointer; background: #F6B23C; color: #161B27; }
+.all-chip:hover { filter: brightness(1.05); }
+.all-chip[aria-pressed="true"] { box-shadow: inset 0 0 0 2px #161B27; }
+.seg input:checked + label { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--panel)); }
+.seg input:focus-visible + label { outline: 3px solid var(--accent); outline-offset: 2px; }
+.checks { display: grid; gap: 6px; }
+.checks label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+.checks input { width: 18px; height: 18px; accent-color: var(--accent); }
+.hint { font-size: 13px; color: var(--muted); }
+.hint.warn { color: var(--danger); }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.primary { background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 12px; padding: 12px 22px; font-family: var(--display); font-weight: 800; font-size: 20px; cursor: pointer; }
+.primary:hover { filter: brightness(1.06); }
+.secondary { background: var(--chip); border: 2px solid var(--line); border-radius: 12px; padding: 10px 18px; font-weight: 700; cursor: pointer; }
+.final { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.final div { background: var(--chip); border-radius: 12px; padding: 10px; text-align: center; }
+.final b { display: block; font-family: var(--display); font-size: 26px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+
+@media (max-width: 860px) {
+  .app { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .stats { grid-template-columns: repeat(4, auto); justify-content: space-between; align-items: start; padding: 12px; gap: 10px; }
+  .stat .val { font-size: 22px; }
+  .stats .levelname, .stats .best { display: none; }
+  #nextCanvas { width: 56px; height: 56px; margin-top: 2px; }
+  .hearts { font-size: 20px; }
+  .log { max-width: 460px; width: 100%; margin: 0 auto; }
+}
+@media (max-width: 420px) {
+  .stats { grid-template-columns: repeat(2, auto); }
+  .brand h1 { font-size: 22px; }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <svg class="logo" viewBox="0 0 22 34" aria-hidden="true"><rect x="1" y="17" width="20" height="16" fill="#F2735A"/><rect x="1" y="1" width="20" height="16" fill="#56A8F2"/><path d="M5 5L17 13M17 5L5 13" stroke="#161B27" stroke-width="2.4" stroke-linecap="round"/><rect x="1" y="1" width="20" height="32" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M1 17H21" stroke="currentColor" stroke-width="2"/></svg>
+    <h1>Stac-Tions</h1>
+  </div>
+  <button class="ghost-btn" id="pauseBtn" type="button">Pause</button>
+</header>
+
+<main class="app">
+  <aside class="panel stats" aria-label="Game status">
+    <div class="stat">
+      <div class="label">Score</div>
+      <div class="val" id="score">0</div>
+      <div class="sub best">Best: <span id="best">0</span></div>
+    </div>
+    <div class="stat">
+      <div class="label">Level</div>
+      <div class="val" id="level">1</div>
+      <div class="sub levelname" id="levelName">Halves, thirds, fourths, sixths</div>
+      <div class="progress" aria-hidden="true"><span id="levelBar"></span></div>
+    </div>
+    <div class="stat">
+      <div class="label">Round</div>
+      <div class="val" id="roundNo">1</div>
+      <div class="sub" id="roundSub">of 3</div>
+    </div>
+    <div class="stat">
+      <div class="label">Drops</div>
+      <div class="val" id="drops">0</div>
+    </div>
+  </aside>
+
+  <section class="stage">
+    <div class="msg" id="msg" role="status" aria-live="polite">Build both columns to the same height.</div>
+    <div class="boardwrap"><canvas id="board" aria-label="Game board with two columns"></canvas>
+    </div>
+    <div class="totals" id="totals">
+      <div><b id="t0">0 parts</b></div>
+      <div><b id="t1">0 parts</b></div>
+    </div>
+    <div class="pad">
+      <button type="button" id="bLeft" aria-label="Move to left column"><span class="ic">◀</span>Left</button>
+      <button type="button" id="bSoft" aria-label="Move down (hold)"><span class="ic">▼</span>Down</button>
+      <button type="button" id="bDrop" class="drop" aria-label="Drop now"><span class="ic">⤓</span>Drop</button>
+      <button type="button" id="bRight" aria-label="Move to right column"><span class="ic">▶</span>Right</button>
+    </div>
+  </section>
+
+  <aside class="panel log">
+    <h2>Matches</h2>
+    <ul class="wholes-list" id="wholesList"><li class="empty">Your matches show up here.</li></ul>
+    <div class="label">Keys</div>
+    <div class="keys">
+      <span><kbd>←</kbd> <kbd>→</kbd></span><span>Pick a column</span>
+      <span><kbd>↓</kbd></span><span>Lower</span>
+      <span><kbd>Space</kbd></span><span>Drop</span>
+      <span><kbd>P</kbd></span><span>Pause</span>
+    </div>
+    <div class="hint">Or tap a column.</div>
+  </aside>
+</main>
+
+<div class="modal" id="modal">
+  <div class="card work roundbox" id="roundBox" role="dialog" aria-labelledby="roundTitle" hidden>
+    <div class="work-grid">
+      <canvas id="mini" aria-label="The two capped columns"></canvas>
+      <div class="work-main">
+        <div class="roundhead"><h2 id="roundTitle">Same height!</h2><div class="stars" id="stars" aria-label="Stars"></div></div>
+        <p class="summary" id="roundSummary"></p>
+        <p class="note" id="roundNote"></p>
+        <div class="repeat" id="repeatBox" hidden>
+          <div class="label">Stacking = multiplying</div>
+          <div id="repeatRows"></div>
+        </div>
+      <div class="combine board-combine" id="combine" hidden>
+        <div class="label">Add, then subtract</div>
+        <div class="combine-work" data-op="add">
+          <div class="eqline"></div>
+          <button type="button" class="primary small">Check</button>
+          <span class="tick" aria-hidden="true">✓</span>
+          <div class="dblocks" role="group" aria-label="How the answer simplifies"></div>
+        </div>
+        <div class="combine-work" data-op="sub">
+          <div class="eqline"></div>
+          <button type="button" class="primary small">Check</button>
+          <span class="tick" aria-hidden="true">✓</span>
+          <div class="dblocks" role="group" aria-label="How the answer simplifies"></div>
+        </div>
+        <p id="combineMsg" aria-live="polite"></p>
+      </div>
+        <div class="actions">
+          <button class="primary" id="nextBtn" type="button">Next round</button>
+          <button class="primary" id="retryBtn" type="button">Try again</button>
+          <button class="secondary" id="settings2Btn" type="button">Settings</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card" id="startPanel" role="dialog" aria-labelledby="startTitle">
+    <h2 id="startTitle">Make them the same height</h2>
+    <ol class="rules steps">
+      <li>Pick the <b>shorter</b> column.</li>
+      <li>Drop a stack on it.</li>
+      <li>Repeat until both columns are the <b>same height</b>.</li>
+    </ol>
+    <p class="hint">← → pick a column &nbsp;·&nbsp; Space drops &nbsp;·&nbsp; or just tap a column</p>
+    <div class="field">
+      <div class="label">Mode</div>
+      <div class="seg">
+        <input type="radio" name="mode" id="modeLevels" value="levels"><label for="modeLevels">Level climb</label>
+        <input type="radio" name="mode" id="modePractice" value="practice"><label for="modePractice">Practice</label>
+      </div>
+      <div class="hint" id="modeHint"></div>
+    </div>
+    <div class="field" id="denomField">
+      <div class="label">Fractions</div>
+      <div class="seg" id="denoms"></div>
+      <div class="hint" id="denomHint">Pick at least two.</div>
+    </div>
+    <div class="field">
+      <div class="label">Down speed</div>
+      <div class="seg">
+        <input type="radio" name="speed" id="spSlow" value="slow"><label for="spSlow">Slow</label>
+        <input type="radio" name="speed" id="spNormal" value="normal"><label for="spNormal">Normal</label>
+        <input type="radio" name="speed" id="spFast" value="fast"><label for="spFast">Fast</label>
+      </div>
+    </div>
+    <div class="field">
+      <div class="label">Answers</div>
+      <div class="seg">
+        <input type="radio" name="simplify" id="simpYes" value="yes"><label for="simpYes">Simplify</label>
+        <input type="radio" name="simplify" id="simpNo" value="no"><label for="simpNo">Do not simplify</label>
+      </div>
+      <div class="seg">
+        <input type="radio" name="fractype" id="ftProper" value="proper"><label for="ftProper">Proper</label>
+        <input type="radio" name="fractype" id="ftImproper" value="improper"><label for="ftImproper">Improper</label>
+      </div>
+      <div class="hint" id="fracTypeHint"></div>
+    </div>
+    <div class="checks">
+      <label><input type="checkbox" id="optLabels"> Fraction labels</label>
+      <label><input type="checkbox" id="optTotals"> Column heights</label>
+    </div>
+    <div class="actions"><button class="primary" id="playBtn" type="button">Play</button></div>
+  </div>
+
+  <div class="card" id="pausePanel" role="dialog" aria-labelledby="pauseTitle" hidden>
+    <h2 id="pauseTitle">Paused</h2>
+    <div class="actions">
+      <button class="primary" id="resumeBtn" type="button">Resume</button>
+      <button class="secondary" id="restartBtn" type="button">Restart</button>
+      <button class="secondary" id="settingsBtn" type="button">Settings</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(() => {
+const $ = s => document.querySelector(s);
+const FONT = '"Baloo 2", "Trebuchet MS", system-ui, sans-serif';
+// each part of a stack gets its own color, bottom to top
+const PART = ['#F2735A', '#56A8F2', '#F6B23C', '#3EC3A6', '#EE86C8', '#9BD35A', '#A496F7', '#F0DC48', '#7FD6E8', '#FF9F7A', '#C6E26A', '#F7A8D8'];
+const NAMES = { 2: 'halves', 3: 'thirds', 4: 'fourths', 5: 'fifths', 6: 'sixths', 8: 'eighths', 10: 'tenths', 12: 'twelfths' };
+const ALL_D = [2, 3, 4, 5, 6, 8, 10, 12];
+const LEVELS = [
+  { d: [2, 3, 4, 6], cap: 6, nOne: true, name: 'Halves, thirds, fourths, sixths' },
+  { d: [2, 3, 4, 5, 6], cap: 12, nOne: true, name: 'Up to fifths and sixths' },
+  { d: [2, 3, 4, 5, 6, 8], cap: 20, nOne: false, name: 'Adding eighths' },
+  { d: ALL_D, cap: 20, nOne: false, name: 'Every fraction' }
+];
+const ROUNDS_PER_LEVEL = 3;
+const H_PARTS = 20;               // board height, in blocks (every part is one block tall)
+const DOWN_SPEED = { slow: 10, normal: 16, fast: 26 };    // parts per second while Down is held
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const gcd = (a, b) => b ? gcd(b, a % b) : a;
+const lcm = (a, b) => a / gcd(a, b) * b;
+const frHTML = (n, d) => d === 1 ? `${n}` : `<span class="fr"><span>${n}</span><span>${d}</span></span>`;
+const plural = (k, w) => `${k} ${w}${k === 1 ? '' : 's'}`;
+
+// ---------- settings ----------
+const S = { mode: 'levels', speed: 'normal', labels: true, totals: true, denoms: [2, 3, 4], simplify: false, fracType: 'improper' };
+try { Object.assign(S, JSON.parse(localStorage.getItem('fs-settings') || '{}')); } catch (e) {}
+let best = 0;
+try { best = +localStorage.getItem('fs-best') || 0; } catch (e) {}
+const saveSettings = () => { try { localStorage.setItem('fs-settings', JSON.stringify(S)); } catch (e) {} };
+
+// ---------- game state ----------
+let G = null;
+const colH = i => G.cols[i].count * G.kinds[i].d;     // column height in parts
+const fits = i => colH(i) + G.kinds[i].d <= H_PARTS;
+
+function levelInfo() {
+  if (S.mode === 'practice') return { d: S.denoms, cap: H_PARTS, nOne: false };
+  return LEVELS[Math.min(G.level, LEVELS.length) - 1];
+}
+function pairsFor(info) {
+  const out = [];
+  for (const a of info.d) for (const b of info.d) if (a < b && lcm(a, b) <= info.cap) out.push([a, b]);
+  return out;
+}
+function newRound(same) {
+  if (!same) {
+    const info = levelInfo();
+    let pairs = pairsFor(info);
+    if (pairs.length > 1 && G.kinds) pairs = pairs.filter(([a, b]) => !(Math.min(G.kinds[0].d, G.kinds[1].d) === a && Math.max(G.kinds[0].d, G.kinds[1].d) === b));
+    let [a, b] = pairs[Math.floor(Math.random() * pairs.length)] || [2, 3];
+    if (Math.random() < 0.5) [a, b] = [b, a];
+    const num = d => info.nOne ? 1 : 1 + Math.floor(Math.random() * (d - 1));
+    G.kinds = [{ n: num(a), d: a }, { n: num(b), d: b }];
+    // "Proper": pick numerators so the two fractions add up to 1 whole or less (1/a + 1/b always does)
+    for (let t = 0; S.fracType === 'proper' && G.kinds[0].n * b + G.kinds[1].n * a > a * b; t++) {
+      G.kinds = t < 40 ? [{ n: num(a), d: a }, { n: num(b), d: b }] : [{ n: 1, d: a }, { n: 1, d: b }];
+    }
+  }
+  const L = lcm(G.kinds[0].d, G.kinds[1].d);
+  G.target = L;
+  G.par = L / G.kinds[0].d + L / G.kinds[1].d;
+  // every round opens with one stack in each column (unlike denominators, so different heights)
+  G.cols = [{ count: 1 }, { count: 1 }];
+  G.drops = 0; G.mistakes = 0; G.combined = {}; G.simpStep = {}; G.picOp = null; G.revealed = {}; G.active = null; G.wait = 0.6; G.done = false; G.flash = null; G.toPanel = null;
+  showRound(false);
+  // the first falling stack appears over the taller column, so the player has to compare and move it
+  G.lastCol = colH(0) > colH(1) ? 0 : 1;
+  const [k0, k1] = G.kinds;
+  say('Which column is shorter?', '');
+  updateHUD();
+}
+function newGame() {
+  G = { score: 0, level: 1, round: 1, cols: [{ count: 0 }, { count: 0 }], kinds: null, active: null,
+        fx: [], log: [], paused: false, demo: false, done: false };
+  newRound(false);
+  renderLog();
+}
+function demoGame() {
+  newGame();
+  G.demo = true; G.paused = true;
+  G.kinds = [{ n: 1, d: 2 }, { n: 1, d: 3 }];
+  G.cols = [{ count: 2 }, { count: 1 }];
+  G.active = { col: 1, xv: 1, y: 19, soft: false, bump: 0 };
+  updateHUD();
+}
+
+// stacks only appear when the player asks for one, above the column they chose
+function spawnAt(t) {
+  const col = fits(t) ? t : 1 - t;
+  if (!fits(col)) return outOfRoom();
+  G.active = { col, xv: col, y: H_PARTS - G.kinds[col].d, soft: false, bump: 0 };
+  G.lastCol = col;
+}
+
+function land() {
+  const a = G.active, i = a.col;
+  G.active = null; G.wait = 0.25;
+  G.cols[i].count++; G.drops++;
+  const h0 = colH(0), h1 = colH(1);
+  if (h0 === h1) return matched(h0);
+  say('Which column is shorter now?', '');
+  if (!fits(0) && !fits(1)) outOfRoom();
+  updateHUD();
+}
+
+function matched(h) {
+  G.done = true;
+  const [k0, k1] = G.kinds, c0 = G.cols[0].count, c1 = G.cols[1].count;
+  const stars = G.mistakes === 0 ? 3 : G.mistakes <= 2 ? 2 : 1;
+  const pts = 100 * stars * (S.mode === 'practice' ? 1 : G.level);
+  G.score += pts;
+  if (G.score > best) { best = G.score; try { localStorage.setItem('fs-best', String(best)); } catch (e) {} }
+  G.flash = { h, t: 0 };
+  addFx(`+${pts}`, cw / 2, ch - h * partH - 50, '#FFFFFF', 30, 1.3);
+  say('Same height!', 'good');
+  const eqv = k => `${frHTML(k.n, k.d)} = ${frHTML(k.n * h / k.d, h)}`;
+  G.log.unshift(`${eqv(k0)} &nbsp; ${eqv(k1)}`);
+  G.log = G.log.slice(0, 7); renderLog();
+  renderResult();
+  G.toPanel = S.mode === 'practice' && !reduceMotion ? revealTimes()[1].land + 0.6 : 1.3;
+  updateHUD();
+}
+function renderResult() {
+  const [k0, k1] = G.kinds, c0 = G.cols[0].count, c1 = G.cols[1].count;
+  const retry = $('#retryBtn');
+  if (!G.flash) {
+    $('#roundTitle').textContent = 'Out of room';
+    $('#stars').innerHTML = '';
+    $('#roundSummary').innerHTML = `These match at <b>${G.target} parts</b>.`;
+    $('#roundNote').textContent = 'Always drop on the shorter column.';
+    $('#nextBtn').hidden = true; retry.textContent = 'Try again'; retry.className = 'primary';
+    $('#combine').hidden = true;
+    return;
+  }
+  const h = G.flash.h;
+  const stars = G.mistakes === 0 ? 3 : G.mistakes <= 2 ? 2 : 1;
+  const pts = 100 * stars * (S.mode === 'practice' ? 1 : G.level);
+  // what the match means: a common denominator, and equivalent fractions on it
+  const eq = k => `${frHTML(k.n, k.d)} = ${frHTML(k.n * h / k.d, h)}`;
+  $('#roundTitle').textContent = 'Same height!';
+  $('#stars').innerHTML = '★'.repeat(stars) + `<span class="off">${'★'.repeat(3 - stars)}</span>`;
+  $('#stars').setAttribute('aria-label', `${stars} of 3 stars`);
+  $('#roundSummary').innerHTML = `${eq(k0)} and ${eq(k1)}`;
+  $('#roundNote').textContent = `+${pts} points`
+    + (S.mode === 'levels' && G.round >= ROUNDS_PER_LEVEL ? ` · Level ${G.level + 1} next` : '');
+  retry.textContent = 'Replay round'; retry.className = 'secondary';
+  renderRepeat(h);
+  resetCombine();
+}
+
+// ---------- practice mode: stacking is repeated addition, which is multiplication ----------
+function renderRepeat(h) {
+  const box = $('#repeatBox');
+  box.hidden = S.mode !== 'practice';
+  if (box.hidden) return;
+  $('#repeatRows').innerHTML = G.kinds.map((k, i) => {
+    const c = G.cols[i].count;
+    const adds = Array(c).fill(k.d).join(' + ');
+    const times = `<span class="times c${i}">× ${c}</span>`;
+    return `<div class="rcol">
+      <div class="side">${i ? 'Right' : 'Left'}: <b class="c${i}">${c}</b> ${c === 1 ? 'stack' : 'stacks'} of ${NAMES[k.d]}</div>
+      <div class="sum">${adds} = <span class="times c${i}">${c} ×</span> ${k.d} = ${h} parts</div>
+      <div class="eqv">so ${frHTML(k.n, k.d)} = <span class="fr"><span>${k.n} ${times}</span><span>${k.d} ${times}</span></span> = ${frHTML(k.n * c, h)}</div>
+    </div>`;
+  }).join('');
+}
+
+// ---------- add and subtract the two matched fractions (both required before the next round) ----------
+const OPS = ['add', 'sub'];
+function combineAB(op) {
+  const h = G.flash.h;
+  let [a, b] = G.kinds.map(k => k.n * h / k.d);   // numerators over the common denominator
+  if (op === 'sub' && b > a) [a, b] = [b, a];      // take the smaller from the larger
+  return [a, b];
+}
+const combineDone = () => OPS.every(op => G.combined[op]);
+// with "Simplify" on, a reducible answer needs a second step: its simplest form
+const needsSimplify = (want, h) => S.simplify && want > 0 && gcd(want, h) > 1;
+function simpHTML(op, want, h, done) {
+  const g = gcd(want, h), sn = want / g, sd = h / g;
+  const box = (id, label, val) => `<input id="${id}" type="number" inputmode="numeric" min="0" aria-label="${label}"${done ? ` value="${val}" disabled` : ''}>`;
+  // a whole number simplifies to a single box
+  const inner = sd === 1 ? box(`sn-${op}`, 'Simplest form', sn)
+    : `<span class="fr fr-in"><span>${box(`sn-${op}`, 'Simplest form: top number', sn)}</span><span>${box(`sd-${op}`, 'Simplest form: bottom number', sd)}</span></span>`;
+  return `<span class="simp"${done ? '' : ' hidden'}>= ${inner}</span>`;
+}
+// instructional picture, shown once a problem's first answer is right. The h denominator blocks are split
+// into g equal groups (g = the biggest number that divides both the X count and h), and the X's are shared out
+// so every group holds the same number of X's. One group is the simplest form: want/h = (want/g)/(h/g).
+// An answer bigger than 1 whole gets a row of h blocks per whole; group i is the i-th chunk of every row.
+function drawBlocks(op) {
+  const wrap = $(`.combine-work[data-op=${op}] .dblocks`);
+  const show = !!(G.simpStep[op] || G.combined[op]) && G.picOp === op;
+  wrap.hidden = !show;
+  if (!show) { wrap.innerHTML = ''; return; }
+  const h = G.flash.h, [a, b] = combineAB(op), add = op === 'add', want = add ? a + b : a - b;
+  const g = want > 0 ? gcd(want, h) : 1, sn = want / g, sd = h / g;
+  const wholes = Math.max(1, Math.ceil(want / h));
+  // which blocks get an X: in each group, fill its chunks row by row until it holds sn X's
+  const xAt = Array.from({ length: wholes }, () => Array(h).fill(false));
+  for (let gi = 0; gi < g; gi++) for (let j = 0; j < sn; j++) xAt[Math.floor(j / sd)][gi * sd + (j % sd)] = true;
+  // every X is the same gold, so the equal groups are easy to compare
+  const color = () => ' xs';
+  const grouped = g > 1 ? ' grouped' : '';
+  let html = '';
+  for (let w = 0; w < wholes; w++) {
+    const groups = [];
+    for (let gi = 0; gi < g; gi++) {
+      const cells = [];
+      for (let c = 0; c < sd; c++) {
+        const x = xAt[w][gi * sd + c];
+        cells.push(`<span class="ub${x ? color() : ''}">${x ? '✕' : ''}</span>`);
+      }
+      groups.push(`<span class="grp">${cells.join('')}</span>`);
+    }
+    html += `<div class="gline"><span class="glabel">${w ? '' : frHTML(want, h)}</span><div class="units${grouped}">${groups.join('')}</div></div>`;
+  }
+  const simple = sd === 1 ? `${sn}` : frHTML(sn, sd);
+  const rv = G.revealed[op] ? '' : ' reveal';
+  G.revealed[op] = true;
+  if (want === 0) {
+    html += `<div class="gcap">No X's: the answer is 0.</div>`;
+  } else if (want % h === 0) {
+    html += `<div class="gcap${rv}">Every block has an X: ${frHTML(want, h)} = ${simple} whole${sn === 1 ? '' : 's'}</div>`;
+  } else if (g > 1) {
+    // label every group with what it holds, so the equal shares are easy to see
+    const tags = Array.from({ length: g }, () => `<span class="grp gtag">${simple}</span>`).join('');
+    html += `<div class="gline${rv}"><span class="glabel"></span><div class="units">${tags}</div></div>`
+          + `<div class="gcap${rv}">${g} equal groups, ${sn} X${sn === 1 ? '' : "'s"} in each: ${frHTML(want, h)} = ${simple}</div>`;
+  } else {
+    html += `<div class="gcap">No equal groups: ${frHTML(want, h)} is already in simplest form.</div>`;
+  }
+  wrap.innerHTML = html;
+}
+function resetCombine() {
+  G.combined = G.combined || {};
+  G.simpStep = G.simpStep || {};
+  G.revealed = G.revealed || {};
+  const h = G.flash.h;
+  for (const op of OPS) {
+    const row = $(`.combine-work[data-op=${op}]`), [a, b] = combineAB(op), done = !!G.combined[op];
+    const want = op === 'add' ? a + b : a - b, step2 = done || !!G.simpStep[op];
+    row.querySelector('.eqline').innerHTML = `${frHTML(a, h)} ${op === 'add' ? '+' : '−'} ${frHTML(b, h)} = <span class="fr fr-in"><span><input id="ans-${op}" type="number" inputmode="numeric" min="0" aria-label="${op === 'add' ? 'Sum' : 'Difference'}: top number"${step2 ? ` value="${want}" disabled` : ''}></span><span class="den">${h}</span></span>`
+      + (needsSimplify(want, h) || (done && G.simpStep[op]) ? simpHTML(op, want, h, done) : '');
+    if (step2 && !done) row.querySelector('.simp').hidden = false;
+    row.classList.toggle('done', done);
+    drawBlocks(op);
+  }
+  const m = $('#combineMsg');
+  m.textContent = combineDone() ? '' : 'Fill in the top numbers.';
+  m.className = '';
+  $('#nextBtn').hidden = !combineDone();
+}
+function focusRow(op) {
+  const el = [...$(`.combine-work[data-op=${op}]`).querySelectorAll('input')].find(x => !x.disabled && x.offsetParent);
+  if (el) el.focus({ preventScroll: true });
+}
+function showPicture(op) {
+  G.picOp = op;
+  OPS.forEach(drawBlocks);
+}
+function finishRow(op, html) {
+  if (!G.combined[op]) {
+    G.combined[op] = true; G.score += 50;
+    if (G.score > best) { best = G.score; try { localStorage.setItem('fs-best', String(best)); } catch (e) {} }
+    updateHUD();
+  }
+  $(`.combine-work[data-op=${op}]`).querySelectorAll('input').forEach(x => { x.disabled = true; });
+  $(`.combine-work[data-op=${op}]`).classList.add('done');
+  if (G.picOp !== op) showPicture(op); else drawBlocks(op);
+  const m = $('#combineMsg'); m.innerHTML = `Yes! ${html} +50`; m.className = 'good';
+  if (combineDone()) { $('#nextBtn').hidden = false; $('#nextBtn').focus({ preventScroll: true }); }
+  else focusRow(OPS.find(o => !G.combined[o]));
+  placeCombine();
+}
+function checkCombine(op) {
+  const h = G.flash.h, [a, b] = combineAB(op), add = op === 'add', sign = add ? '+' : '−';
+  const want = add ? a + b : a - b, m = $('#combineMsg'), row = $(`.combine-work[data-op=${op}]`);
+  const sum = `${frHTML(a, h)} ${sign} ${frHTML(b, h)} = ${frHTML(want, h)}`;
+  const g = gcd(want, h), sn = want / g, sd = h / g;
+  // step 2: the simplest form
+  if (G.simpStep[op]) {
+    const n = parseInt($(`#sn-${op}`).value, 10), dEl = $(`#sd-${op}`), d = dEl ? parseInt(dEl.value, 10) : 1;
+    if (Number.isNaN(n) || Number.isNaN(d)) { m.textContent = 'Fill in the simplest form.'; m.className = 'bad'; focusRow(op); return; }
+    if (n !== sn || d !== sd) {
+      m.innerHTML = `Try again: what number divides both ${want} and ${h}?`; m.className = 'bad'; focusRow(op); return;
+    }
+    return finishRow(op, `${sum} = ${sd === 1 ? sn : frHTML(sn, sd)}`);
+  }
+  // step 1: the answer over the common denominator
+  const input = $(`#ans-${op}`), v = parseInt(input.value, 10);
+  if (Number.isNaN(v)) { m.textContent = 'Fill in the top number.'; m.className = 'bad'; input.focus(); return; }
+  if (v !== want) { m.innerHTML = `Try again: ${a} ${sign} ${b} = ?`; m.className = 'bad'; input.focus(); return; }
+  if (needsSimplify(want, h)) {
+    G.simpStep[op] = true;
+    input.disabled = true;
+    showPicture(op);
+    row.querySelector('.simp').hidden = false;
+    m.innerHTML = `Now simplify ${frHTML(want, h)}. The picture shows how.`; m.className = '';
+    placeCombine(); focusRow(op);
+    return;
+  }
+  finishRow(op, sum);
+}
+function outOfRoom() {
+  G.done = true; G.active = null;
+  renderResult();
+  say('Out of room.', 'bad');
+  G.toPanel = 0.6;
+  updateHUD();
+}
+function nextRound() {
+  if (S.mode === 'levels') {
+    if (G.round >= ROUNDS_PER_LEVEL) { G.level++; G.round = 1; }
+    else G.round++;
+  } else G.round++;
+  newRound(false); resumeView();
+}
+
+function update(dt) {
+  if (!G || G.paused) return;
+  for (const f of G.fx) f.t += dt;
+  G.fx = G.fx.filter(f => f.t < f.dur);
+  if (G.flash) G.flash.t += dt;
+  if (G.done) {
+    if (G.toPanel != null) { G.toPanel -= dt; if (G.toPanel <= 0) { G.toPanel = null; showRound(true); } }
+    return;
+  }
+  if (!G.active) return;   // nothing falls until the player presses Left, Right, Down or Drop
+  const a = G.active;
+  a.xv += (a.col - a.xv) * Math.min(1, dt * 16);
+  if (a.bump > 0) a.bump -= dt;
+  // no automatic fall: the stack only moves down while the player holds Down
+  if (a.soft) { if (wrongCol(a.col)) reject(a); else a.y -= DOWN_SPEED[S.speed] * dt; }
+  const floor = colH(a.col);
+  if (a.y <= floor) { a.y = floor; land(); }
+}
+
+// ---------- input ----------
+let softHeld = false;
+const playing = () => G && !G.paused && !G.done && !G.demo;
+function moveTo(t) {
+  if (!playing() || t < 0 || t > 1) return;
+  if (!G.active) return spawnAt(t);
+  const a = G.active; if (t === a.col) return;
+  // the stack takes the shape of the column it is over, so it must fit there
+  if (a.y < colH(t) - 1e-9 || !fits(t)) { a.bump = 0.25; return; }
+  a.col = t; G.lastCol = t;
+  a.y = Math.min(a.y, H_PARTS - G.kinds[t].d);
+}
+// a stack may only go on the shorter column (either one when they are level)
+const wrongCol = i => colH(i) > colH(1 - i);
+function reject(a) {
+  a.bump = 0.3; a.soft = false;
+  if (!a.warned) { a.warned = true; G.mistakes++; }
+  say('That side is taller. Try the other side.', 'bad');
+}
+function hardDrop() {
+  if (!playing()) return;
+  if (!G.active) spawnAt(G.lastCol);
+  const a = G.active; if (!a) return;
+  if (wrongCol(a.col)) return reject(a);
+  a.y = colH(a.col); land();
+}
+function setSoft(on) {
+  softHeld = on;
+  if (on && playing() && !G.active) spawnAt(G.lastCol);
+  if (G && G.active) G.active.soft = on;
+}
+
+addEventListener('keydown', e => {
+  const k = e.key;
+  if (G && G.done && !$('#roundBox').hidden) {
+    if (['INPUT', 'BUTTON'].includes(document.activeElement?.tagName)) return;   // let the answer boxes and buttons work
+    if ((k === 'Enter' || k === ' ') && !$('#nextBtn').hidden) { e.preventDefault(); $('#nextBtn').click(); }
+    return;
+  }
+  if (!$('#modal').hidden) {
+    if (k === 'Enter' && !$('#startPanel').hidden && document.activeElement?.tagName !== 'BUTTON') { e.preventDefault(); $('#playBtn').click(); }
+    return;
+  }
+  if (['ArrowLeft', 'ArrowRight', 'ArrowDown', 'ArrowUp', ' '].includes(k)) e.preventDefault();
+  if (k === 'ArrowLeft' || k === 'a' || k === 'A') moveTo(G.active ? G.active.col - 1 : 0);
+  else if (k === 'ArrowRight' || k === 'd' || k === 'D') moveTo(G.active ? G.active.col + 1 : 1);
+  else if (k === 'ArrowDown' || k === 's' || k === 'S') setSoft(true);
+  else if (k === ' ' || k === 'ArrowUp' || k === 'w' || k === 'W') { if (!e.repeat) hardDrop(); }
+  else if (k === 'p' || k === 'P' || k === 'Escape') pause();
+});
+addEventListener('keyup', e => { if (['ArrowDown', 's', 'S'].includes(e.key)) setSoft(false); });
+
+const board = $('#board');
+board.addEventListener('pointerdown', e => {
+  const r = board.getBoundingClientRect();
+  moveTo(e.clientX - r.left < r.width / 2 ? 0 : 1);
+});
+$('#bLeft').addEventListener('click', () => moveTo(0));
+$('#bRight').addEventListener('click', () => moveTo(1));
+$('#bDrop').addEventListener('click', hardDrop);
+const soft = $('#bSoft');
+soft.addEventListener('pointerdown', e => { e.preventDefault(); setSoft(true); });
+['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => soft.addEventListener(ev, () => setSoft(false)));
+
+// ---------- panels ----------
+function showPanel(which) {
+  $('#modal').hidden = !which;
+  $('#startPanel').hidden = which !== 'start';
+  $('#pausePanel').hidden = which !== 'pause';
+  $('#roundBox').hidden = which !== 'round';
+  const focusEl = { start: '#playBtn', pause: '#resumeBtn' }[which];
+  if (focusEl) setTimeout(() => $(focusEl).focus(), 0);
+}
+// the problems now live in the pop-up, so there is nothing to position on the board
+function placeCombine() {}
+// the round result opens as a pop-up over the dimmed page
+function showRound(on) {
+  $('.pad').hidden = on;
+  $('#combine').hidden = !(on && G && G.flash);
+  if (!on) { if (!$('#roundBox').hidden) showPanel(null); return; }
+  showPanel('round');
+  // focus whatever comes next: the first unsolved problem, then Next round (or Try again when out of room)
+  const open = !$('#combine').hidden && OPS.find(o => !G.combined[o]);
+  setTimeout(() => open ? focusRow(open) : $($('#nextBtn').hidden ? '#retryBtn' : '#nextBtn').focus({ preventScroll: true }), 0);
+}
+document.querySelectorAll('.combine-work').forEach(row => {
+  row.querySelector('button').addEventListener('click', () => checkCombine(row.dataset.op));
+  row.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') { e.preventDefault(); checkCombine(row.dataset.op); } });
+});
+function pause() {
+  if (!G || G.done || G.demo || G.paused) return;
+  G.paused = true; setSoft(false); showPanel('pause');
+  $('#pauseBtn').textContent = 'Resume';
+}
+function resumeView() { G.paused = false; showPanel(null); $('#pauseBtn').textContent = 'Pause'; }
+$('#pauseBtn').addEventListener('click', () => { if (G && G.paused && !G.demo) resumeView(); else pause(); });
+$('#resumeBtn').addEventListener('click', resumeView);
+$('#restartBtn').addEventListener('click', start);
+$('#nextBtn').addEventListener('click', nextRound);
+$('#retryBtn').addEventListener('click', () => { newRound(true); resumeView(); });
+const toSettings = () => { syncForm(); showPanel('start'); };
+$('#settingsBtn').addEventListener('click', toSettings);
+$('#settings2Btn').addEventListener('click', toSettings);
+$('#playBtn').addEventListener('click', () => {
+  if (S.mode === 'practice' && !pairsFor({ d: S.denoms, cap: H_PARTS }).length) { $('#denomHint').classList.add('warn'); return; }
+  start();
+});
+function start() { newGame(); resumeView(); }
+document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
+
+// settings form
+$('#denoms').innerHTML = '<button type="button" class="all-chip" id="denAll" aria-pressed="false">All</button>'
+  + ALL_D.map(d => `<input type="checkbox" id="den${d}" value="${d}"><label for="den${d}">${NAMES[d]}</label>`).join('');
+// "All" picks every fraction; it shows a check while all of them are picked
+function updateAllChip() {
+  const all = S.denoms.length === ALL_D.length;
+  $('#denAll').setAttribute('aria-pressed', String(all));
+  $('#denAll').textContent = all ? 'All ✓' : 'All';
+}
+$('#denAll').addEventListener('click', () => {
+  S.denoms = ALL_D.slice();
+  for (const d of ALL_D) $('#den' + d).checked = true;
+  saveSettings(); updateDenomHint(); updateAllChip();
+});
+function syncForm() {
+  $('#modeLevels').checked = S.mode === 'levels';
+  $('#modePractice').checked = S.mode === 'practice';
+  ({ slow: $('#spSlow'), normal: $('#spNormal'), fast: $('#spFast') })[S.speed].checked = true;
+  $('#simpYes').checked = !!S.simplify; $('#simpNo').checked = !S.simplify;
+  $('#ftProper').checked = S.fracType === 'proper'; $('#ftImproper').checked = S.fracType !== 'proper';
+  $('#fracTypeHint').textContent = S.fracType === 'proper' ? 'Sums stay at 1 whole or less.' : 'Sums can be more than 1 whole.';
+  $('#optLabels').checked = S.labels; $('#optTotals').checked = S.totals;
+  for (const d of ALL_D) $('#den' + d).checked = S.denoms.includes(d);
+  updateAllChip();
+  $('#denomField').hidden = S.mode !== 'practice';
+  $('#modeHint').textContent = S.mode === 'practice'
+    ? 'You choose the fractions.'
+    : `New fractions every ${ROUNDS_PER_LEVEL} rounds.`;
+  updateDenomHint();
+}
+function updateDenomHint() {
+  const h = $('#denomHint');
+  h.classList.remove('warn');
+  if (S.denoms.length < 2) { h.textContent = 'Pick at least two.'; return; }
+  h.textContent = pairsFor({ d: S.denoms, cap: H_PARTS }).length
+    ? ''
+    : 'These are too tall to match. Add halves.';
+}
+document.querySelectorAll('input[name=mode]').forEach(i => i.addEventListener('change', () => { S.mode = i.value; saveSettings(); syncForm(); }));
+document.querySelectorAll('input[name=speed]').forEach(i => i.addEventListener('change', () => { S.speed = i.value; saveSettings(); }));
+document.querySelectorAll('input[name=simplify]').forEach(i => i.addEventListener('change', () => { S.simplify = i.value === 'yes'; saveSettings(); }));
+document.querySelectorAll('input[name=fractype]').forEach(i => i.addEventListener('change', () => { S.fracType = i.value; saveSettings(); syncForm(); }));
+$('#optLabels').addEventListener('change', e => { S.labels = e.target.checked; saveSettings(); });
+$('#optTotals').addEventListener('change', e => { S.totals = e.target.checked; saveSettings(); updateHUD(); });
+for (const d of ALL_D) $('#den' + d).addEventListener('change', () => {
+  S.denoms = ALL_D.filter(x => $('#den' + x).checked); saveSettings(); updateDenomHint(); updateAllChip();
+});
+
+// ---------- HUD ----------
+function say(html, cls) { const m = $('#msg'); m.innerHTML = `<span>${html}</span>`; m.className = 'msg' + (cls ? ' ' + cls : ''); }
+function renderLog() {
+  $('#wholesList').innerHTML = G.log.length ? G.log.map(e => `<li>${e}</li>`).join('')
+    : '<li class="empty">Your matches show up here.</li>';
+}
+function updateHUD() {
+  $('#score').textContent = G.score;
+  $('#best').textContent = Math.max(best, G.score);
+  if (S.mode === 'practice') {
+    $('#level').textContent = 'Practice';
+    $('#levelName').textContent = S.denoms.map(d => NAMES[d]).join(', ');
+    $('#levelBar').style.width = '0';
+    $('#roundNo').textContent = G.round; $('#roundSub').textContent = '';
+  } else {
+    const lv = LEVELS[Math.min(G.level, LEVELS.length) - 1];
+    $('#level').textContent = G.level;
+    $('#levelName').textContent = lv.name;
+    $('#levelBar').style.width = ((G.round - 1) / ROUNDS_PER_LEVEL * 100) + '%';
+    $('#roundNo').textContent = G.round; $('#roundSub').textContent = `of ${ROUNDS_PER_LEVEL}`;
+  }
+  $('#drops').textContent = G.drops;
+  G.kinds.forEach((k, i) => {
+    $('#t' + i).textContent = S.totals ? plural(colH(i), 'part') + ' tall' : '';
+  });
+}
+
+// ---------- drawing ----------
+let ctx = board.getContext('2d');
+let cw = 300, ch = 480, colW = 150, partH = 20, dpr = 1, GUT = 46;
+const colX = i => GUT + i * colW;          // left edge of column i (the margins sit outside both columns)
+function layout() {
+  const narrow = innerWidth <= 860;
+  const reserved = $('.top').offsetHeight + $('#msg').offsetHeight + $('#totals').offsetHeight + $('.pad').offsetHeight + 70
+    + (narrow ? $('.stats').offsetHeight + 14 : 0);
+  partH = Math.floor(Math.max(18, Math.min(34, (innerHeight - reserved) / H_PARTS)));
+  ch = partH * H_PARTS;
+  GUT = innerWidth <= 420 ? 38 : 46;
+  const maxW = Math.max(200, $('.stage').clientWidth - 8 - GUT * 2);
+  colW = Math.round(Math.max(90, Math.min(150, maxW / 2)));
+  cw = colW * 2 + GUT * 2;
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  board.width = cw * dpr; board.height = ch * dpr;
+  board.style.width = cw + 'px'; board.style.height = ch + 'px';
+  const t = $('#totals'); t.style.width = cw + 'px'; t.style.paddingInline = GUT + 'px';
+  placeCombine();
+}
+addEventListener('resize', layout);
+
+function rr(c, x, y, w, h, r) { c.beginPath(); c.roundRect ? c.roundRect(x, y, w, h, r) : c.rect(x, y, w, h); }
+
+// one upright stack: a whole split into k.d equal layers, each its own color, with an X on the top k.n layers (the numerator)
+function drawStack(c, k, x, yt, w, h, o = {}) {
+  const lh = h / k.d, yb = yt + h, rad = Math.min(6, lh * 0.45);
+  c.save();
+  rr(c, x, yt, w, h, rad);
+  c.save(); c.clip();
+  for (let j = 0; j < k.d; j++) { c.fillStyle = PART[j % PART.length]; c.fillRect(x, yb - (j + 1) * lh - 0.5, w, lh + 1); }
+  c.fillStyle = 'rgba(255,255,255,0.28)'; c.fillRect(x, yt, Math.min(5, w * 0.08), h);
+  c.fillStyle = 'rgba(0,0,0,0.12)'; c.fillRect(x + w - 4, yt, 4, h);
+  c.fillStyle = 'rgba(14,18,28,0.85)';
+  for (let j = 1; j < k.d; j++) c.fillRect(x, yb - j * lh - 1, w, 2);
+  c.strokeStyle = '#161B27'; c.lineCap = 'round';
+  const my = Math.max(2, lh * 0.18), xh = Math.max(3, lh - my * 2);
+  const xw = Math.min(w - 16, Math.max(xh * 1.3, 18));
+  c.lineWidth = Math.max(1.6, Math.min(4.5, xh * 0.16));
+  for (let j = 0; j < k.n; j++) {
+    const x0 = x + (w - xw) / 2, x1 = x0 + xw, y0 = yt + j * lh + my, y1 = y0 + xh;
+    c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.moveTo(x1, y0); c.lineTo(x0, y1); c.stroke();
+  }
+  c.restore();
+  rr(c, x, yt, w, h, rad);
+  c.lineWidth = 2.5; c.strokeStyle = o.stroke || 'rgba(10,14,24,0.85)'; c.stroke();
+  if (o.flash) { rr(c, x, yt, w, h, rad); c.fillStyle = `rgba(255,255,255,${o.flash})`; c.fill(); }
+  c.restore();
+}
+
+// a stack's fraction, written in the margin beside its column with a bracket the height of the stack
+function drawMarginLabel(side, k, yt, h, bright) {
+  const x = side ? cw - GUT / 2 : GUT / 2, edge = side ? colX(1) + colW + 5 : GUT - 5, dir = side ? 1 : -1;
+  ctx.save();
+  ctx.strokeStyle = bright ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.35)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(edge, yt + 3); ctx.lineTo(edge + 4 * dir, yt + 3); ctx.lineTo(edge + 4 * dir, yt + h - 3); ctx.lineTo(edge, yt + h - 3); ctx.stroke();
+  const s = Math.max(11, Math.min(16, (h - 6) * 0.4)), cy = yt + h / 2;
+  ctx.fillStyle = bright ? '#FFFFFF' : 'rgba(255,255,255,0.8)';
+  ctx.font = `800 ${s}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(k.n, x + 2 * dir, cy - s * 0.6 + 1); ctx.fillText(k.d, x + 2 * dir, cy + s * 0.6 + 1);
+  const bw = s * (String(k.d).length * 0.55 + 0.4);
+  ctx.fillRect(x + 2 * dir - bw / 2, cy - 0.5, bw, 2);
+  ctx.restore();
+}
+
+const COLC = ['#5EE0F0', '#FF8AD8'];   // left and right column colors on the board
+// practice mode, after the cap: count the left column's stacks, fly the count into its box as the multiplier,
+// then do the same for the right column. Times are seconds after the cap starts to fall.
+function revealTimes() {
+  const out = []; let t = 0.6;
+  for (let i = 0; i < 2; i++) {
+    const start = t, done = start + G.cols[i].count * 0.4, land = done + 0.6;
+    out.push({ start, done, land }); t = land + 0.4;
+  }
+  return out;
+}
+// the small copy of the two capped columns in the pop-up.
+// It borrows the board's drawing helpers by pointing the shared drawing state at its own canvas for a moment.
+const mini = $('#mini'), mctx = mini.getContext('2d');
+function drawMini() {
+  if (!G || !G.flash || !G.kinds || $('#roundBox').hidden) return;
+  const h = G.flash.h, mp = Math.max(14, Math.min(32, Math.floor(400 / h))), mcol = 108, mg = 6;
+  const W = mg * 2 + mcol * 2, H = mp * h + 20, r = Math.min(window.devicePixelRatio || 1, 2);
+  if (mini.width !== W * r || mini.height !== H * r) {
+    mini.width = W * r; mini.height = H * r; mini.style.width = W + 'px'; mini.style.height = H + 'px';
+  }
+  const saved = { ctx, cw, ch, colW, partH, GUT, dpr };
+  ctx = mctx; cw = W; ch = H; colW = mcol; partH = mp; GUT = mg; dpr = r;
+  try {
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cw, ch);
+    ctx.fillStyle = '#141A26'; ctx.fillRect(0, 0, cw, ch);
+    for (let i = 0; i < 2; i++) { ctx.fillStyle = i ? '#232C3F' : '#1F2738'; ctx.fillRect(colX(i), 0, colW, ch); }
+    const pad = 12, pw = colW - pad * 2;
+    for (let i = 0; i < 2; i++) {
+      const k = G.kinds[i];
+      for (let j = 0; j < G.cols[i].count; j++) drawStack(ctx, k, colX(i) + pad, ch - (j + 1) * k.d * partH + 1, pw, k.d * partH - 2);
+    }
+    ctx.fillStyle = '#0B0F18'; ctx.fillRect(colX(1) - 2, 0, 4, ch);
+    // the cap
+    const y = ch - h * partH;
+    rr(ctx, colX(0) + pad - 6, y - 9, colX(1) + colW - pad + 6 - (colX(0) + pad - 6), 8, 4); ctx.fillStyle = '#F6B23C'; ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = '#161B27'; ctx.stroke();
+  } finally {
+    ({ ctx, cw, ch, colW, partH, GUT, dpr } = saved);
+  }
+}
+function drawCount(x, y, n, color, r = 11) {
+  ctx.save();
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fillStyle = color; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = '#161B27'; ctx.stroke();
+  ctx.fillStyle = '#161B27'; ctx.font = `800 ${Math.round(r * 1.2)}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(n, x, y + 1);
+  ctx.restore();
+}
+
+// the box above the cap: n/d = n'/h. In practice mode the multiplication sits in between, (n × c)/(d × c),
+// where c is the number of stacks in that column, drawn in the column's color. Shrinks its font to fit the column.
+function drawEquiv(cx, capTop, capBottom, k, h, c, maxW, o = {}) {
+  const prac = S.mode === 'practice', color = o.color || '#9FC3FF';
+  const toks = [{ f: [String(k.n), String(k.d)], col: '#FFFFFF' }, { t: '=' }];
+  if (prac) toks.push({ mul: true }, { t: '=', after: true });
+  toks.push({ f: [String(k.n * h / k.d), String(h)], col: '#F6B23C', after: prac });
+  const ms = `× ${c}`;
+  let fs = 15, widths = [], total = 0;
+  for (;;) {
+    ctx.font = `800 ${fs}px ${FONT}`;
+    widths = toks.map(t => t.mul ? Math.max(ctx.measureText(`${k.n} ${ms}`).width, ctx.measureText(`${k.d} ${ms}`).width) + 8
+      : t.f ? Math.max(ctx.measureText(t.f[0]).width, ctx.measureText(t.f[1]).width) + 6 : ctx.measureText(t.t).width + 8);
+    total = widths.reduce((a, b) => a + b, 0) + 14;
+    if (total <= maxW || fs <= 10) break;
+    fs--;
+  }
+  const bh = fs * 2.6 + 8;
+  let top = capTop - bh - 6;
+  if (top < 2) top = capBottom + 6;   // no room above a cap at the very top
+  const cy = top + bh / 2, spots = [];
+  let x = cx - total / 2;
+  ctx.save();
+  if (o.pulse > 0) { ctx.shadowColor = color; ctx.shadowBlur = 22 * o.pulse; }
+  rr(ctx, x, top, total, bh, 10); ctx.fillStyle = 'rgba(14,18,28,0.94)'; ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.lineWidth = 2 + 2 * (o.pulse || 0); ctx.strokeStyle = o.pulse > 0 ? color : '#F6B23C'; ctx.stroke();
+  ctx.textBaseline = 'middle';
+  x += 7;
+  toks.forEach((t, n) => {
+    const mid = x + widths[n] / 2;
+    ctx.globalAlpha = t.after && o.after != null ? o.after : 1;
+    ctx.textAlign = 'center';
+    if (t.mul) {
+      for (const [base, yy] of [[k.n, cy - fs * 0.62 + 1], [k.d, cy + fs * 0.66 + 1]]) {
+        const bw = ctx.measureText(`${base} `).width, mw = ctx.measureText(ms).width, xw = ctx.measureText('× ').width;
+        const sx = mid - (bw + mw) / 2, nx = sx + bw + xw, nw = ctx.measureText(String(c)).width;
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#FFFFFF'; ctx.fillText(`${base} `, sx, yy);
+        ctx.fillStyle = color; ctx.fillText('×', sx + bw, yy);
+        spots.push({ x: nx + nw / 2, y: yy });
+        if (o.num !== false) ctx.fillText(String(c), nx, yy);
+        else { ctx.strokeStyle = color; ctx.lineWidth = 1.5; rr(ctx, nx - 2, yy - fs * 0.5, nw + 4, fs, 3); ctx.stroke(); }
+      }
+      ctx.fillStyle = '#FFFFFF'; ctx.fillRect(x + 2, cy - 1, widths[n] - 4, 2);
+    } else if (t.f) {
+      ctx.fillStyle = t.col;
+      ctx.fillText(t.f[0], mid, cy - fs * 0.62 + 1); ctx.fillText(t.f[1], mid, cy + fs * 0.66 + 1);
+      ctx.fillRect(x + 2, cy - 1, widths[n] - 4, 2);
+    } else { ctx.fillStyle = '#FFFFFF'; ctx.fillText(t.t, mid, cy + 1); }
+    x += widths[n];
+  });
+  ctx.restore();
+  return { spots };
+}
+
+function addFx(text, x, y, color, size, dur) { if (G) G.fx.push({ text, x, y, color, size, t: 0, dur }); }
+
+function draw() {
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, cw, ch);
+  ctx.fillStyle = '#141A26'; ctx.fillRect(0, 0, cw, ch);   // margins
+  for (let i = 0; i < 2; i++) {
+    const g = ctx.createLinearGradient(0, 0, 0, ch);
+    g.addColorStop(0, i ? '#202839' : '#1C2434'); g.addColorStop(1, i ? '#273145' : '#232C3F');
+    ctx.fillStyle = g; ctx.fillRect(colX(i), 0, colW, ch);
+  }
+  // 20 background blocks per column, one part tall each, so heights can be counted and compared
+  const bpad = Math.max(14, colW * 0.14);
+  for (let i = 0; i < 2; i++) for (let r = 0; r < H_PARTS; r++) {
+    rr(ctx, colX(i) + bpad, ch - (r + 1) * partH + 2, colW - bpad * 2, partH - 4, 4);
+    ctx.fillStyle = (r + 1) % 5 ? 'rgba(255,255,255,0.045)' : 'rgba(255,255,255,0.08)'; ctx.fill();
+    ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(255,255,255,0.10)'; ctx.stroke();
+  }
+  ctx.font = `700 11px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  for (let r = 1; r <= H_PARTS; r++) if (r % 5 === 0 || r === 1) ctx.fillText(r, colX(0) + bpad / 2, ch - (r - 0.5) * partH);
+  ctx.fillStyle = '#0B0F18'; ctx.fillRect(colX(1) - 2, 0, 4, ch);
+  if (!G || !G.kinds) return;
+  const pad = Math.max(14, colW * 0.14), pw = colW - pad * 2;
+  const fl = G.flash, fk = fl ? Math.min(1, fl.t / 1.2) : 0;
+  const rv = fl && S.mode === 'practice' ? revealTimes() : null;
+  for (let i = 0; i < 2; i++) {
+    const k = G.kinds[i];
+    for (let j = 0; j < G.cols[i].count; j++) {
+      const yt = ch - (j + 1) * k.d * partH + 1, h = k.d * partH - 2;
+      drawStack(ctx, k, colX(i) + pad, yt, pw, h, { flash: fl && !reduceMotion ? Math.sin(Math.PI * fk) * 0.45 : 0 });
+      if (S.labels) drawMarginLabel(i, k, yt, h, false);
+      // practice mode: count the stacks one by one once the cap is on (1, 2, 3 ... stacks)
+      if (rv && (reduceMotion || fl.t > rv[i].start + j * 0.4)) {
+        // the last badge is the number of stacks: it grows once the count is done
+        const last = j === G.cols[i].count - 1 && (reduceMotion || fl.t >= rv[i].done);
+        drawCount(colX(i) + pad, yt + h / 2, j + 1, COLC[i], last ? 14 : 11);
+      }
+    }
+  }
+  // the cap: one solid lid across both columns at the matching height, held until the next round
+  if (fl) {
+    const yEnd = ch - fl.h * partH, drop = reduceMotion ? 1 : Math.min(1, fl.t / 0.45);
+    const ease = 1 - Math.pow(1 - drop, 3);
+    const y = -12 + (yEnd + 12) * ease, capH = Math.max(10, partH * 0.45), x0 = colX(0) + pad - 8, x1 = colX(1) + colW - pad + 8;
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 3;
+    rr(ctx, x0, y - capH, x1 - x0, capH, capH / 2); ctx.fillStyle = '#F6B23C'; ctx.fill();
+    ctx.shadowColor = 'transparent';
+    ctx.lineWidth = 2.5; ctx.strokeStyle = '#161B27'; ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.fillRect(x0 + capH / 2, y - capH + 2, x1 - x0 - capH, 2);
+    if (drop >= 1) {
+      // each column's fraction renamed with the common denominator, written above the cap
+      for (let i = 0; i < 2; i++) {
+        const c = G.cols[i].count;
+        let o = {};
+        if (rv) {
+          const r = rv[i], t = fl.t, landed = reduceMotion || t >= r.land;
+          o = { color: COLC[i], num: landed, after: reduceMotion ? 1 : landed ? Math.min(1, (t - r.land) / 0.3) : 0,
+                pulse: reduceMotion || !landed ? 0 : Math.max(0, 1 - (t - r.land) / 0.9) };
+        }
+        const box = drawEquiv(colX(i) + colW / 2, y - capH, y, G.kinds[i], fl.h, c, colW - 6, o);
+        // the count flies from the top stack's badge into both multiplier slots
+        if (rv && !reduceMotion && fl.t >= rv[i].done && fl.t < rv[i].land) {
+          const k = G.kinds[i], p = (fl.t - rv[i].done) / (rv[i].land - rv[i].done), e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+          const sx = colX(i) + pad, sy = ch - c * k.d * partH + k.d * partH / 2;
+          for (const sp of box.spots) {
+            const fx = sx + (sp.x - sx) * e, fy = sy + (sp.y - sy) * e - Math.sin(Math.PI * e) * 30;
+            drawCount(fx, fy, c, COLC[i], 14 - 5 * e);
+          }
+        }
+      }
+    }
+    ctx.restore();
+  }
+  const a = G.active;
+  if (a) {
+    const k = G.kinds[a.col];
+    const sx = a.bump > 0 && !reduceMotion ? Math.sin(a.bump * 70) * 4 : 0;
+    const yt = ch - (a.y + k.d) * partH + 1, h = k.d * partH - 2;
+    ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.45)'; ctx.shadowBlur = 14; ctx.shadowOffsetY = 4;
+    drawStack(ctx, k, GUT + a.xv * colW + pad + sx, yt, pw, h, { stroke: 'rgba(255,255,255,0.95)' });
+    ctx.restore();
+    if (S.labels) drawMarginLabel(a.col, k, yt, h, true);
+  }
+  for (const f of G.fx) {
+    const k = f.t / f.dur;
+    ctx.save(); ctx.globalAlpha = k > 0.6 ? 1 - (k - 0.6) / 0.4 : 1;
+    ctx.font = `800 ${f.size}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(10,14,24,0.85)';
+    const y = f.y - (reduceMotion ? 0 : k * 40);
+    ctx.strokeText(f.text, f.x, y); ctx.fillStyle = f.color; ctx.fillText(f.text, f.x, y);
+    ctx.restore();
+  }
+}
+
+// ---------- loop ----------
+let last = performance.now();
+function frame(t) {
+  const dt = Math.min(0.05, (t - last) / 1000); last = t;
+  update(dt); draw(); drawMini();
+  requestAnimationFrame(frame);
+}
+
+function boot(data) {
+  layout();
+  if (data && data.G && data.G.kinds && !data.G.demo) {
+    G = data.G; renderLog(); updateHUD(); syncForm();
+    if (G.done) {
+      // a finished round comes back with its cap and result, ready to replay
+      G.paused = false; G.toPanel = null; renderResult(); showPanel(null); showRound(true);
+    } else {
+      G.paused = true; showPanel('pause'); $('#pauseBtn').textContent = 'Resume';
+    }
+  } else {
+    demoGame(); syncForm(); showPanel('start');
+  }
+  requestAnimationFrame(frame);
+  if (document.fonts) document.fonts.ready.then(layout);
+}
+boot({});
+})();
+</script>
+</body>
+</html>
