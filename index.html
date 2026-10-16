@@ -209,6 +209,10 @@ button { font: inherit; color: inherit; }
 .pad button:active { background: var(--chip); border-color: var(--accent); }
 .pad .drop { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .pad .drop:active { background: var(--accent); filter: brightness(.92); }
+/* shown after a match, before the add/subtract pop-up */
+.ready { width: 100%; max-width: 360px; font-size: 22px; padding: 14px 18px; animation: readyIn 0.4s ease both; }
+@keyframes readyIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .ready { animation: none; } }
 
 .log { display: grid; gap: 14px; }
 .log h2 { font-family: var(--display); font-size: 19px; margin: 0; line-height: 1.1; }
@@ -311,6 +315,7 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
       <button type="button" id="bDrop" class="drop" aria-label="Drop now"><span class="ic">⤓</span>Drop</button>
       <button type="button" id="bRight" aria-label="Move to right column"><span class="ic">▶</span>Right</button>
     </div>
+    <button type="button" class="primary ready" id="readyBtn" hidden>Ready to Move On?</button>
   </section>
 
   <aside class="panel log">
@@ -745,7 +750,7 @@ function update(dt) {
   G.fx = G.fx.filter(f => f.t < f.dur);
   if (G.flash) G.flash.t += dt;
   if (G.done) {
-    if (G.toPanel != null) { G.toPanel -= dt; if (G.toPanel <= 0) { G.toPanel = null; showRound(true); } }
+    if (G.toPanel != null) { G.toPanel -= dt; if (G.toPanel <= 0) { G.toPanel = null; G.flash ? showReady(true) : showRound(true); } }
     return;
   }
   if (!G.active) return;   // nothing falls until the player presses Left, Right, Down or Drop
@@ -792,6 +797,10 @@ function setSoft(on) {
 
 addEventListener('keydown', e => {
   const k = e.key;
+  if (G && G.done && !$('#readyBtn').hidden && $('#modal').hidden) {
+    if (k === 'Enter' || k === ' ') { e.preventDefault(); $('#readyBtn').click(); }
+    return;
+  }
   if (G && G.done && !$('#roundBox').hidden) {
     if (['INPUT', 'BUTTON'].includes(document.activeElement?.tagName)) return;   // let the answer boxes and buttons work
     if ((k === 'Enter' || k === ' ') && !$('#nextBtn').hidden) { e.preventDefault(); $('#nextBtn').click(); }
@@ -834,7 +843,14 @@ function showPanel(which) {
 // the problems now live in the pop-up, so there is nothing to position on the board
 function placeCombine() {}
 // the round result opens as a pop-up over the dimmed page
+// after a match: the board stays in view until the player taps "Ready to Move On?"
+function showReady(on) {
+  $('#readyBtn').hidden = !on;
+  if (on) { $('.pad').hidden = true; setTimeout(() => $('#readyBtn').focus({ preventScroll: true }), 0); }
+}
+$('#readyBtn').addEventListener('click', () => { showReady(false); showRound(true); });
 function showRound(on) {
+  showReady(false);
   $('.pad').hidden = on;
   $('#combine').hidden = !(on && G && G.flash);
   if (!on) { if (!$('#roundBox').hidden) showPanel(null); return; }
