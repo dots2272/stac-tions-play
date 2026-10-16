@@ -230,6 +230,10 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
 .rules { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
 .card.welcome { background: #FFFFFF; border-color: #FFFFFF; max-width: 420px; padding: 36px 28px; justify-items: center; }
 .welcome-btn { font-size: 24px; padding: 18px 26px; line-height: 1.2; text-wrap: balance; }
+#startPanel .page { display: grid; gap: 16px; }
+.page-btns { display: grid; gap: 10px; justify-items: stretch; max-width: 360px; width: 100%; }
+.page-btns button { width: 100%; }
+#startPanel .lead { margin: 0; color: var(--ink); font-size: 18px; font-weight: 700; }
 .mode-steps { margin: 0; padding-left: 22px; font-weight: 400; color: var(--ink); }
 .mode-steps b { font-weight: 800; }
 .rules.steps { font-family: var(--display); font-weight: 700; font-size: 20px; line-height: 1.25; gap: 6px; padding-left: 26px; }
@@ -375,13 +379,22 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
   </div>
   <div class="card" id="startPanel" role="dialog" aria-labelledby="startTitle">
     <h2 id="startTitle">Let's stack some fractions 😊</h2>
-    <ol class="rules steps">
-      <li>Look at the stacks on the next page.</li>
-      <li>Tap on the <b>shorter</b> column.</li>
-      <li>Drop a stack on it.</li>
-      <li>Repeat until both columns are the <b>same height</b>.</li>
-    </ol>
-    <p class="hint">← → pick a column &nbsp;·&nbsp; Space drops &nbsp;·&nbsp; or just tap a column</p>
+    <!-- page 2: how to play -->
+    <div class="page" data-page="2">
+      <p class="lead">Look at the stacks on the next page.</p>
+      <ol class="rules steps">
+        <li>Tap on the <b>shorter</b> column.</li>
+        <li>Drop a stack on it.</li>
+        <li>Repeat until both columns are the <b>same height</b>.</li>
+      </ol>
+      <p class="hint">← → pick a column &nbsp;·&nbsp; Space drops &nbsp;·&nbsp; or just tap a column</p>
+      <div class="page-btns">
+        <button class="primary" type="button" data-next>Next Page</button>
+        <button class="secondary" type="button" data-skip>Skip Directions and Practice/Play!</button>
+      </div>
+    </div>
+    <!-- page 3: mode and fractions -->
+    <div class="page" data-page="3" hidden>
     <div class="field">
       <div class="label">Mode</div>
       <ol class="mode-steps">
@@ -402,6 +415,13 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
       <div class="seg" id="denoms"></div>
       <div class="hint" id="denomHint">Pick at least one.</div>
     </div>
+      <div class="page-btns">
+        <button class="primary" type="button" data-next>Next Page</button>
+        <button class="secondary" type="button" data-skip>Skip Directions and Practice/Play!</button>
+      </div>
+    </div>
+    <!-- page 4: answers and display, then play -->
+    <div class="page" data-page="4" hidden>
     <div class="field">
       <div class="label">Answers</div>
       <div class="seg">
@@ -413,7 +433,10 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
       <label><input type="checkbox" id="optLabels"> Fraction labels</label>
       <label><input type="checkbox" id="optTotals"> Column heights</label>
     </div>
-    <div class="actions"><button class="primary" id="playBtn" type="button">Play</button></div>
+      <div class="page-btns">
+        <button class="primary" id="playBtn" type="button">Play</button>
+      </div>
+    </div>
   </div>
 
   <div class="card" id="pausePanel" role="dialog" aria-labelledby="pauseTitle" hidden>
@@ -812,7 +835,9 @@ addEventListener('keydown', e => {
     return;
   }
   if (!$('#modal').hidden) {
-    if (k === 'Enter' && !$('#startPanel').hidden && document.activeElement?.tagName !== 'BUTTON') { e.preventDefault(); $('#playBtn').click(); }
+    if (k === 'Enter' && !$('#startPanel').hidden && document.activeElement?.tagName !== 'BUTTON') {
+      e.preventDefault(); $('#startPanel .page:not([hidden]) .page-btns .primary').click();
+    }
     return;
   }
   if (['ArrowLeft', 'ArrowRight', 'ArrowDown', 'ArrowUp', ' '].includes(k)) e.preventDefault();
@@ -843,7 +868,7 @@ function showPanel(which) {
   $('#startPanel').hidden = which !== 'start';
   $('#pausePanel').hidden = which !== 'pause';
   $('#roundBox').hidden = which !== 'round';
-  const focusEl = { welcome: '#welcomeBtn', start: '#playBtn', pause: '#resumeBtn' }[which];
+  const focusEl = { welcome: '#welcomeBtn', pause: '#resumeBtn' }[which];
   if (focusEl) setTimeout(() => $(focusEl).focus(), 0);
 }
 // the problems now live in the pop-up, so there is nothing to position on the board
@@ -880,13 +905,26 @@ $('#resumeBtn').addEventListener('click', resumeView);
 $('#restartBtn').addEventListener('click', start);
 $('#nextBtn').addEventListener('click', nextRound);
 $('#retryBtn').addEventListener('click', () => { newRound(true); resumeView(); });
-const toSettings = () => { syncForm(); showPanel('start'); };
+// the directions screen is split into pages: 2 = how to play, 3 = mode and fractions, 4 = answers and Play
+function showStartPage(n) {
+  document.querySelectorAll('#startPanel .page').forEach(pg => { pg.hidden = +pg.dataset.page !== n; });
+  const first = $(`#startPanel .page[data-page="${n}"] .page-btns .primary`);
+  if (first) setTimeout(() => first.focus({ preventScroll: true }), 0);
+  $('#startPanel').scrollTop = 0; $('#modal').scrollTop = 0;
+}
+document.querySelectorAll('#startPanel [data-next]').forEach(b => b.addEventListener('click', () => {
+  const n = +b.closest('.page').dataset.page;
+  showStartPage(n + 1);
+}));
+// skip straight into a game with the current settings (Practice unless the player chose Play)
+document.querySelectorAll('#startPanel [data-skip]').forEach(b => b.addEventListener('click', () => $('#playBtn').click()));
+const toSettings = () => { syncForm(); showPanel('start'); showStartPage(3); };
 // the very first screen: one button that leads to the directions and settings
-$('#welcomeBtn').addEventListener('click', toSettings);
+$('#welcomeBtn').addEventListener('click', () => { syncForm(); showPanel('start'); showStartPage(2); });
 $('#settingsBtn').addEventListener('click', toSettings);
 $('#settings2Btn').addEventListener('click', toSettings);
 $('#playBtn').addEventListener('click', () => {
-  if (S.mode === 'practice' && !pairsFor({ d: S.denoms, cap: H_PARTS }).length) { $('#denomHint').classList.add('warn'); return; }
+  if (S.mode === 'practice' && !pairsFor({ d: S.denoms, cap: H_PARTS }).length) { showStartPage(3); $('#denomHint').classList.add('warn'); return; }
   start();
 });
 function start() { newGame(); resumeView(); }
