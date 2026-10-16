@@ -408,6 +408,7 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
     </div>
       <div class="page-btns">
         <button class="primary" type="button" data-next>Next Page</button>
+        <button class="secondary" type="button" data-prev>Previous Page</button>
         <button class="secondary" type="button" data-skip>Skip Directions and Practice/Play!</button>
       </div>
     </div>
@@ -424,6 +425,7 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
     </div>
       <div class="page-btns">
         <button class="primary" type="button" data-next>Next Page</button>
+        <button class="secondary" type="button" data-prev>Previous Page</button>
         <button class="secondary" type="button" data-skip>Skip Directions and Practice/Play!</button>
       </div>
     </div>
@@ -442,6 +444,7 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
     </div>
       <div class="page-btns">
         <button class="primary" id="playBtn" type="button">Play</button>
+        <button class="secondary" type="button" data-prev>Previous Page</button>
       </div>
     </div>
   </div>
@@ -922,6 +925,11 @@ function showStartPage(n) {
 document.querySelectorAll('#startPanel [data-next]').forEach(b => b.addEventListener('click', () => {
   const n = +b.closest('.page').dataset.page;
   showStartPage(n === 3 && S.mode !== 'practice' ? 5 : n + 1);
+}));
+// back one page (from Answers in Play mode, back past the Fractions page to Mode)
+document.querySelectorAll('#startPanel [data-prev]').forEach(b => b.addEventListener('click', () => {
+  const n = +b.closest('.page').dataset.page;
+  showStartPage(n === 5 && S.mode !== 'practice' ? 3 : n - 1);
 }));
 // skip straight into a game with the current settings (Practice unless the player chose Play)
 document.querySelectorAll('#startPanel [data-skip]').forEach(b => b.addEventListener('click', () => $('#playBtn').click()));
