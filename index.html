@@ -384,16 +384,12 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
     </div>
     <div class="field" id="denomField">
       <div class="label">Fractions</div>
+      <ol class="mode-steps">
+        <li>Choose <b>All</b> for random fractions each time.</li>
+        <li>Pick one or more for <b>focused</b> practice.</li>
+      </ol>
       <div class="seg" id="denoms"></div>
-      <div class="hint" id="denomHint">Pick at least two.</div>
-    </div>
-    <div class="field">
-      <div class="label">Down speed</div>
-      <div class="seg">
-        <input type="radio" name="speed" id="spSlow" value="slow"><label for="spSlow">Slow</label>
-        <input type="radio" name="speed" id="spNormal" value="normal"><label for="spNormal">Normal</label>
-        <input type="radio" name="speed" id="spFast" value="fast"><label for="spFast">Fast</label>
-      </div>
+      <div class="hint" id="denomHint">Pick at least one.</div>
     </div>
     <div class="field">
       <div class="label">Answers</div>
@@ -441,7 +437,7 @@ const LEVELS = [
 ];
 const ROUNDS_PER_LEVEL = 3;
 const H_PARTS = 20;               // board height, in blocks (every part is one block tall)
-const DOWN_SPEED = { slow: 10, normal: 16, fast: 26 };    // parts per second while Down is held
+const DOWN_SPEED = 16;   // parts per second while Down is held (one speed for everyone)
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const gcd = (a, b) => b ? gcd(b, a % b) : a;
@@ -450,7 +446,7 @@ const frHTML = (n, d) => d === 1 ? `${n}` : `<span class="fr"><span>${n}</span><
 const plural = (k, w) => `${k} ${w}${k === 1 ? '' : 's'}`;
 
 // ---------- settings ----------
-const S = { mode: 'practice', speed: 'normal', labels: true, totals: true, denoms: [2, 3, 4], simplify: false, fracType: 'improper' };
+const S = { mode: 'practice', labels: true, totals: true, denoms: [2, 3, 4], simplify: false, fracType: 'improper' };
 try { Object.assign(S, JSON.parse(localStorage.getItem('fs-settings') || '{}')); } catch (e) {}
 let best = 0;
 try { best = +localStorage.getItem('fs-best') || 0; } catch (e) {}
@@ -467,6 +463,12 @@ function levelInfo() {
 }
 function pairsFor(info) {
   const out = [];
+  if (info.d.length === 1) {
+    // one fraction picked (focused practice): pair it with every other fraction it can match
+    const [a] = info.d;
+    for (const b of ALL_D) if (b !== a && lcm(a, b) <= info.cap) out.push(a < b ? [a, b] : [b, a]);
+    return out;
+  }
   for (const a of info.d) for (const b of info.d) if (a < b && lcm(a, b) <= info.cap) out.push([a, b]);
   return out;
 }
@@ -759,7 +761,7 @@ function update(dt) {
   a.xv += (a.col - a.xv) * Math.min(1, dt * 16);
   if (a.bump > 0) a.bump -= dt;
   // no automatic fall: the stack only moves down while the player holds Down
-  if (a.soft) { if (wrongCol(a.col)) reject(a); else a.y -= DOWN_SPEED[S.speed] * dt; }
+  if (a.soft) { if (wrongCol(a.col)) reject(a); else a.y -= DOWN_SPEED * dt; }
   const floor = colH(a.col);
   if (a.y <= floor) { a.y = floor; land(); }
 }
@@ -891,7 +893,6 @@ $('#denAll').addEventListener('click', () => {
 function syncForm() {
   $('#modeLevels').checked = S.mode === 'levels';
   $('#modePractice').checked = S.mode === 'practice';
-  ({ slow: $('#spSlow'), normal: $('#spNormal'), fast: $('#spFast') })[S.speed].checked = true;
   $('#simpYes').checked = !!S.simplify; $('#simpNo').checked = !S.simplify;
   $('#ftProper').checked = S.fracType === 'proper'; $('#ftImproper').checked = S.fracType !== 'proper';
   $('#fracTypeHint').textContent = S.fracType === 'proper' ? 'Sums stay at 1 whole or less.' : 'Sums can be more than 1 whole.';
@@ -907,13 +908,13 @@ function syncForm() {
 function updateDenomHint() {
   const h = $('#denomHint');
   h.classList.remove('warn');
-  if (S.denoms.length < 2) { h.textContent = 'Pick at least two.'; return; }
+  if (!S.denoms.length) { h.textContent = 'Pick at least one.'; return; }
+  if (S.denoms.length === 1) { h.textContent = `Every round uses ${NAMES[S.denoms[0]]}, paired with another fraction.`; return; }
   h.textContent = pairsFor({ d: S.denoms, cap: H_PARTS }).length
     ? ''
     : 'These are too tall to match. Add halves.';
 }
 document.querySelectorAll('input[name=mode]').forEach(i => i.addEventListener('change', () => { S.mode = i.value; saveSettings(); syncForm(); }));
-document.querySelectorAll('input[name=speed]').forEach(i => i.addEventListener('change', () => { S.speed = i.value; saveSettings(); }));
 document.querySelectorAll('input[name=simplify]').forEach(i => i.addEventListener('change', () => { S.simplify = i.value === 'yes'; saveSettings(); }));
 document.querySelectorAll('input[name=fractype]').forEach(i => i.addEventListener('change', () => { S.fracType = i.value; saveSettings(); syncForm(); }));
 $('#optLabels').addEventListener('change', e => { S.labels = e.target.checked; saveSettings(); });
