@@ -228,6 +228,8 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
 .card h2 { font-family: var(--display); font-weight: 800; font-size: 30px; margin: 0; line-height: 1.05; text-wrap: balance; }
 .card p { margin: 0; color: var(--muted); }
 .rules { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.card.welcome { background: #FFFFFF; border-color: #FFFFFF; max-width: 420px; padding: 36px 28px; justify-items: center; }
+.welcome-btn { font-size: 24px; padding: 18px 26px; line-height: 1.2; text-wrap: balance; }
 .mode-steps { margin: 0; padding-left: 22px; font-weight: 400; color: var(--ink); }
 .mode-steps b { font-weight: 800; }
 .rules.steps { font-family: var(--display); font-weight: 700; font-size: 20px; line-height: 1.25; gap: 6px; padding-left: 26px; }
@@ -333,6 +335,9 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
 </main>
 
 <div class="modal" id="modal">
+  <div class="card welcome" id="welcomePanel" role="dialog" aria-label="Welcome" hidden>
+    <button type="button" class="primary welcome-btn" id="welcomeBtn">Ready to Stack some Fractions? 😊</button>
+  </div>
   <div class="card work roundbox" id="roundBox" role="dialog" aria-labelledby="roundTitle" hidden>
     <div class="work-grid">
       <canvas id="mini" aria-label="The two capped columns"></canvas>
@@ -834,10 +839,11 @@ soft.addEventListener('pointerdown', e => { e.preventDefault(); setSoft(true); }
 // ---------- panels ----------
 function showPanel(which) {
   $('#modal').hidden = !which;
+  $('#welcomePanel').hidden = which !== 'welcome';
   $('#startPanel').hidden = which !== 'start';
   $('#pausePanel').hidden = which !== 'pause';
   $('#roundBox').hidden = which !== 'round';
-  const focusEl = { start: '#playBtn', pause: '#resumeBtn' }[which];
+  const focusEl = { welcome: '#welcomeBtn', start: '#playBtn', pause: '#resumeBtn' }[which];
   if (focusEl) setTimeout(() => $(focusEl).focus(), 0);
 }
 // the problems now live in the pop-up, so there is nothing to position on the board
@@ -875,6 +881,8 @@ $('#restartBtn').addEventListener('click', start);
 $('#nextBtn').addEventListener('click', nextRound);
 $('#retryBtn').addEventListener('click', () => { newRound(true); resumeView(); });
 const toSettings = () => { syncForm(); showPanel('start'); };
+// the very first screen: one button that leads to the directions and settings
+$('#welcomeBtn').addEventListener('click', toSettings);
 $('#settingsBtn').addEventListener('click', toSettings);
 $('#settings2Btn').addEventListener('click', toSettings);
 $('#playBtn').addEventListener('click', () => {
@@ -1241,7 +1249,7 @@ function boot(data) {
       G.paused = true; showPanel('pause'); $('#pauseBtn').textContent = 'Resume';
     }
   } else {
-    demoGame(); syncForm(); showPanel('start');
+    demoGame(); syncForm(); showPanel('welcome');
   }
   requestAnimationFrame(frame);
   if (document.fonts) document.fonts.ready.then(layout);
