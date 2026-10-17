@@ -349,10 +349,6 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
         <div class="roundhead"><h2 id="roundTitle">Same height!</h2><div class="stars" id="stars" aria-label="Stars"></div></div>
         <p class="summary" id="roundSummary"></p>
         <p class="note" id="roundNote"></p>
-        <div class="repeat" id="repeatBox" hidden>
-          <div class="label">Stacking = multiplying</div>
-          <div id="repeatRows"></div>
-        </div>
       <div class="combine board-combine" id="combine" hidden>
         <div class="label">Add, then subtract</div>
         <div class="combine-work" data-op="add">
@@ -369,6 +365,10 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
         </div>
         <p id="combineMsg" aria-live="polite"></p>
       </div>
+        <div class="repeat" id="repeatBox" hidden>
+          <div class="label">Stacking = multiplying</div>
+          <div id="repeatRows"></div>
+        </div>
         <div class="actions">
           <button class="primary" id="nextBtn" type="button">Next round</button>
           <button class="primary" id="retryBtn" type="button">Try again</button>
