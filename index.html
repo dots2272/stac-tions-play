@@ -206,6 +206,20 @@ button { font: inherit; color: inherit; }
 .ready { width: 100%; max-width: 360px; font-size: 22px; padding: 14px 18px; animation: readyIn 0.4s ease both; }
 @keyframes readyIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .ready { animation: none; } }
+/* interactive tutorial: a coach card above the board walks through the How To Play steps */
+.coach { width: 100%; max-width: 420px; display: grid; gap: 6px; padding: 12px 14px; border-radius: 14px; text-align: center;
+  background: var(--panel); border: 3px solid #F6B23C; animation: readyIn 0.3s ease both; }
+.coach-step { font-size: 12px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
+.coach-text { font-family: var(--display); font-weight: 800; font-size: 21px; line-height: 1.2; color: var(--ink); text-wrap: balance; }
+.coach-help { font-size: 15px; color: var(--muted); }
+.coach-help.bad { color: var(--danger); font-weight: 700; }
+.coach-btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 2px; }
+.coach-btns button { font-size: 16px; padding: 8px 16px; }
+.pad .drop.tut-pulse, .pad button.tut-pulse { animation: tutPulse 0.9s ease-in-out infinite; }
+@keyframes tutPulse { 50% { box-shadow: 0 0 0 5px #F6B23C; } }
+.tutorial-btn { background: #F6B23C; color: #18202E; border: 0; border-radius: 12px; padding: 12px 22px; font-family: var(--display); font-weight: 800; font-size: 20px; cursor: pointer; }
+.tutorial-btn:hover { filter: brightness(1.05); }
+@media (prefers-reduced-motion: reduce) { .coach { animation: none; } .pad .drop.tut-pulse, .pad button.tut-pulse { animation: none; box-shadow: 0 0 0 4px #F6B23C; } }
 
 .log { display: grid; gap: 14px; }
 .log h2 { font-family: var(--display); font-size: 19px; margin: 0; line-height: 1.1; }
@@ -284,6 +298,16 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
     </div>
     <button type="button" class="primary ready" id="readyBtn" hidden>Ready to Move On?</button>
     <div class="msg" id="msg" role="status" aria-live="polite">Build both columns to the same height.</div>
+    <div class="coach" id="coach" role="status" aria-live="polite" hidden>
+      <div class="coach-step" id="coachStep"></div>
+      <div class="coach-text" id="coachText"></div>
+      <div class="coach-help" id="coachHelp"></div>
+      <div class="coach-btns">
+        <button type="button" class="primary" id="coachNext">Next</button>
+        <button type="button" class="secondary" id="coachAgain" hidden>Do It Again</button>
+        <button type="button" class="secondary" id="coachExit">Exit Tutorial</button>
+      </div>
+    </div>
     <div class="boardwrap"><canvas id="board" aria-label="Game board with two columns"></canvas>
     </div>
     <div class="totals" id="totals">
@@ -377,6 +401,7 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
       </ol>
       <div class="page-btns">
         <button class="primary" type="button" data-next>Next Page</button>
+        <button class="tutorial-btn" type="button" id="tutorialBtn">Interactive Tutorial</button>
         <button class="secondary" type="button" data-skip>Skip Directions and Practice/Play!</button>
       </div>
     </div>
@@ -522,6 +547,7 @@ function newRound(same) {
   updateHUD();
 }
 function newGame() {
+  showCoach(false);
   G = { score: 0, level: 1, round: 1, cols: [{ count: 0 }, { count: 0 }], kinds: null, active: null,
         fx: [], log: [], paused: false, demo: false, done: false };
   newRound(false);
@@ -551,6 +577,7 @@ function land() {
   const h0 = colH(0), h1 = colH(1);
   if (h0 === h1) return matched(h0);
   say('Which column is shorter now?', '');
+  if (G.tut) tutStep(Math.min(4, G.tut.step + 1));
   if (!fits(0) && !fits(1)) outOfRoom();
   updateHUD();
 }
@@ -570,6 +597,7 @@ function matched(h) {
   G.log = G.log.slice(0, 7); renderLog();
   renderResult();
   G.toPanel = S.mode === 'practice' && !reduceMotion ? revealTimes()[1].land + 0.6 : 1.3;
+  if (G.tut) { G.toPanel = null; tutStep(5); }   // the tutorial ends at the match, with no pop-up
   updateHUD();
 }
 function renderResult() {
@@ -772,7 +800,7 @@ function update(dt) {
 
 // ---------- input ----------
 let softHeld = false;
-const playing = () => G && !G.paused && !G.done && !G.demo;
+const playing = () => G && !G.paused && !G.done && !G.demo && !(G.tut && G.tut.step === 1);
 function moveTo(t) {
   if (!playing() || t < 0 || t > 1) return;
   if (!G.active) return spawnAt(t);
@@ -788,6 +816,7 @@ function reject(a) {
   a.bump = 0.3; a.soft = false;
   if (!a.warned) { a.warned = true; G.mistakes++; }
   say('That side is taller. Try the other side.', 'bad');
+  if (G.tut) tutHelp('That side is taller. Try the glowing SHORTER side.', true);
 }
 function hardDrop() {
   if (!playing()) return;
@@ -912,6 +941,48 @@ $('#playBtn').addEventListener('click', () => {
   start();
 });
 function start() { newGame(); resumeView(); }
+
+// ---------- interactive tutorial: the How To Play steps, done for real on a 1/2 and 2/3 round ----------
+const TUT = [null,
+  { text: 'Look at the two fraction stacks.', help: 'Which one is shorter? Tap Next when you are ready.' },
+  { text: 'Drop a stack on the <b>SHORTER</b> stack.', help: 'Tap the glowing column, then tap Drop.' },
+  { text: 'Look at the two stacks again. Drop on the <b>SHORTER</b> again.', help: 'The other side is shorter now. Tap it, then tap Drop.' },
+  { text: 'Keep switching until they are the <b>SAME</b> height.', help: 'Always drop on the glowing SHORTER column.' },
+  { text: 'You did it! Both stacks are the <b>SAME</b> height.', help: 'Now you know how to play.' }];
+function showCoach(on) {
+  if ($('#coach').hidden === !on) return;
+  $('#coach').hidden = !on; $('#msg').hidden = on;
+  if (!on) $('#bDrop').classList.remove('tut-pulse');
+  layout();
+}
+function tutHelp(html, bad) { const h = $('#coachHelp'); h.innerHTML = html; h.className = 'coach-help' + (bad ? ' bad' : ''); }
+function tutStep(n) {
+  G.tut.step = n;
+  const st = TUT[n], done = n === 5;
+  $('#coachStep').textContent = done ? 'Tutorial complete' : `Step ${n} of 4`;
+  $('#coachText').innerHTML = st.text; tutHelp(st.help);
+  $('#coachNext').hidden = n !== 1 && !done;
+  $('#coachNext').textContent = done ? 'Next Page' : 'Next';
+  $('#coachAgain').hidden = !done; $('#coachExit').hidden = done;
+  if (n === 1 || done) setTimeout(() => $('#coachNext').focus({ preventScroll: true }), 0);
+}
+function startTutorial() {
+  newGame();
+  G.kinds = [{ n: 1, d: 2 }, { n: 2, d: 3 }];
+  newRound(true);
+  G.tut = { step: 1 };
+  resumeView(); showCoach(true); tutStep(1); updateHUD();
+}
+function endTutorial(page) { demoGame(); syncForm(); showPanel('start'); showStartPage(page); }
+$('#tutorialBtn').addEventListener('click', startTutorial);
+$('#coachNext').addEventListener('click', () => { if (G.tut.step === 1) tutStep(2); else endTutorial(3); });
+$('#coachAgain').addEventListener('click', startTutorial);
+$('#coachExit').addEventListener('click', () => endTutorial(2));
+// the Drop button glows once the stack is over the shorter column
+function tutTick() {
+  const on = !!(G && G.tut && G.tut.step > 1 && !G.done && G.active && !wrongCol(G.active.col));
+  $('#bDrop').classList.toggle('tut-pulse', on);
+}
 document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
 
 // settings form
@@ -979,6 +1050,7 @@ function updateHUD() {
     $('#roundNo').textContent = G.round; $('#roundSub').textContent = `of ${ROUNDS_PER_LEVEL}`;
   }
   $('#drops').textContent = G.drops;
+  if (G.tut) { $('#level').textContent = 'Tutorial'; $('#roundSub').textContent = ''; }
   G.kinds.forEach((k, i) => {
     $('#t' + i).textContent = S.totals ? plural(colH(i), 'part') + ' tall' : '';
   });
@@ -990,7 +1062,7 @@ let cw = 300, ch = 480, colW = 150, partH = 20, dpr = 1, GUT = 46;
 const colX = i => GUT + i * colW;          // left edge of column i (the margins sit outside both columns)
 function layout() {
   const narrow = innerWidth <= 860;
-  const reserved = $('.top').offsetHeight + $('#msg').offsetHeight + $('#totals').offsetHeight + $('.pad').offsetHeight + 70
+  const reserved = $('.top').offsetHeight + $('#msg').offsetHeight + $('#coach').offsetHeight + $('#totals').offsetHeight + $('.pad').offsetHeight + 70
     + $('.stats').offsetHeight + 14;
   partH = Math.floor(Math.max(18, Math.min(34, (innerHeight - reserved) / H_PARTS)));
   ch = partH * H_PARTS;
@@ -1156,6 +1228,25 @@ function drawEquiv(cx, capTop, capBottom, k, h, c, maxW, o = {}) {
   return { spots };
 }
 
+// tutorial: step 1 outlines both stacks; later steps outline the shorter column and label it
+function drawTutGlow() {
+  const p = reduceMotion ? 1 : 0.55 + 0.45 * Math.sin(performance.now() / 260);
+  const cols = G.tut.step === 1 ? [0, 1] : [colH(0) < colH(1) ? 0 : 1];
+  ctx.save();
+  for (const i of cols) {
+    const top = ch - colH(i) * partH;
+    ctx.lineWidth = 4; ctx.strokeStyle = `rgba(246,178,60,${p})`;
+    rr(ctx, colX(i) + 5, top - 6, colW - 10, ch - top + 3, 10); ctx.stroke();
+    if (G.tut.step > 1) {
+      const y = Math.max(16, top - 22);
+      ctx.font = `800 ${Math.min(20, colW * 0.16)}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(10,14,24,0.9)';
+      ctx.strokeText('▼ SHORTER ▼', colX(i) + colW / 2, y);
+      ctx.fillStyle = '#F6B23C'; ctx.fillText('▼ SHORTER ▼', colX(i) + colW / 2, y);
+    }
+  }
+  ctx.restore();
+}
 function addFx(text, x, y, color, size, dur) { if (G) G.fx.push({ text, x, y, color, size, t: 0, dur }); }
 
 function draw() {
@@ -1230,6 +1321,7 @@ function draw() {
     }
     ctx.restore();
   }
+  if (G.tut && !G.done) drawTutGlow();
   const a = G.active;
   if (a) {
     const k = G.kinds[a.col];
@@ -1255,13 +1347,13 @@ function draw() {
 let last = performance.now();
 function frame(t) {
   const dt = Math.min(0.05, (t - last) / 1000); last = t;
-  update(dt); draw(); drawMini();
+  update(dt); draw(); drawMini(); tutTick();
   requestAnimationFrame(frame);
 }
 
 function boot(data) {
   layout();
-  if (data && data.G && data.G.kinds && !data.G.demo) {
+  if (data && data.G && data.G.kinds && !data.G.demo && !data.G.tut) {
     G = data.G; renderLog(); updateHUD(); syncForm();
     if (G.done) {
       // a finished round comes back with its cap and result, ready to replay
