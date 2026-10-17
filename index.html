@@ -966,9 +966,8 @@ function syncForm() {
   for (const d of ALL_D) $('#den' + d).checked = S.denoms.includes(d);
   updateAllChip();
   $('#denomField').hidden = S.mode !== 'practice';
-  $('#modeHint').textContent = S.mode === 'practice'
-    ? 'You choose the fractions.'
-    : `New fractions every ${ROUNDS_PER_LEVEL} rounds.`;
+  $('#modeHint').textContent = S.mode === 'practice' ? '' : `New fractions every ${ROUNDS_PER_LEVEL} rounds.`;
+  $('#modeHint').hidden = S.mode === 'practice';
   updateDenomHint();
 }
 function updateDenomHint() {
