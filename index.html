@@ -137,17 +137,6 @@ button { font: inherit; color: inherit; }
 .roundbox .note { color: var(--muted); }
 .roundbox .stars { font-size: 28px; }
 .combine { display: grid; gap: 8px; border-top: 1px solid var(--line); padding-top: 12px; }
-.repeat { display: grid; gap: 10px; border-top: 1px solid var(--line); padding-top: 12px; }
-#repeatRows { display: grid; gap: 10px; }
-.rcol { display: grid; gap: 4px; padding: 10px 12px; border-radius: 10px; background: var(--chip); }
-.rcol .side { font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
-.rcol .sum { font-family: var(--display); font-weight: 800; font-size: 20px; line-height: 1.2; font-variant-numeric: tabular-nums; }
-.rcol .sum .times { color: var(--accent); }
-.rcol .eqv { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-weight: 700; font-size: 17px; }
-.rcol .eqv .fr { font-size: 0.9em; }
-.rcol .eqv .times { color: var(--accent); }
-.rcol .times.c0, .rcol .c0 { color: var(--col0); }
-.rcol .times.c1, .rcol .c1 { color: var(--col1); }
 .board-combine { position: absolute; z-index: 2; border: 2px solid #F6B23C; border-radius: 12px; padding: 12px 14px; gap: 8px;
   background: rgba(14, 18, 28, 0.95); color: #FFFFFF; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45); }
 .board-combine .label { color: rgba(255, 255, 255, 0.7); }
@@ -365,10 +354,6 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
         </div>
         <p id="combineMsg" aria-live="polite"></p>
       </div>
-        <div class="repeat" id="repeatBox" hidden>
-          <div class="label">Stacking = multiplying</div>
-          <div id="repeatRows"></div>
-        </div>
         <div class="actions">
           <button class="primary" id="nextBtn" type="button">Next round</button>
           <button class="primary" id="retryBtn" type="button">Try again</button>
@@ -608,25 +593,7 @@ function renderResult() {
   $('#roundNote').textContent = `+${pts} points`
     + (S.mode === 'levels' && G.round >= ROUNDS_PER_LEVEL ? ` · Level ${G.level + 1} next` : '');
   retry.textContent = 'Replay round'; retry.className = 'secondary';
-  renderRepeat(h);
   resetCombine();
-}
-
-// ---------- practice mode: stacking is repeated addition, which is multiplication ----------
-function renderRepeat(h) {
-  const box = $('#repeatBox');
-  box.hidden = S.mode !== 'practice';
-  if (box.hidden) return;
-  $('#repeatRows').innerHTML = G.kinds.map((k, i) => {
-    const c = G.cols[i].count;
-    const adds = Array(c).fill(k.d).join(' + ');
-    const times = `<span class="times c${i}">× ${c}</span>`;
-    return `<div class="rcol">
-      <div class="side">${i ? 'Right' : 'Left'}: <b class="c${i}">${c}</b> ${c === 1 ? 'stack' : 'stacks'} of ${NAMES[k.d]}</div>
-      <div class="sum">${adds} = <span class="times c${i}">${c} ×</span> ${k.d} = ${h} parts</div>
-      <div class="eqv">so ${frHTML(k.n, k.d)} = <span class="fr"><span>${k.n} ${times}</span><span>${k.d} ${times}</span></span> = ${frHTML(k.n * c, h)}</div>
-    </div>`;
-  }).join('');
 }
 
 // ---------- add and subtract the two matched fractions (both required before the next round) ----------
