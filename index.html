@@ -83,14 +83,17 @@ button { font: inherit; color: inherit; }
 .ghost-btn:hover { border-color: var(--accent); }
 
 .app {
-  display: grid; grid-template-columns: 210px auto 230px; justify-content: center; align-items: start; gap: 28px;
+  display: grid; grid-template-columns: auto 230px; justify-content: center; align-items: start; gap: 28px;
   padding-block: 10px 20px;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
 .label { font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
-.stats { display: grid; gap: 14px; }
+.stats { display: grid; grid-template-columns: repeat(4, auto); justify-content: space-between; align-items: start;
+  gap: 10px; padding: 12px 14px; width: 100%; max-width: 420px; }
+.stats .stat .val { font-size: 24px; }
+.stats .levelname, .stats .best { display: none; }
 .stat .val { font-family: var(--display); font-weight: 800; font-size: 30px; line-height: 1.05; font-variant-numeric: tabular-nums; }
 .stat .sub { color: var(--muted); font-size: 13px; }
 .progress { height: 8px; border-radius: 99px; background: var(--chip); overflow: hidden; margin-top: 6px; }
@@ -261,9 +264,7 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
 
 @media (max-width: 860px) {
   .app { grid-template-columns: minmax(0, 1fr); gap: 14px; }
-  .stats { grid-template-columns: repeat(4, auto); justify-content: space-between; align-items: start; padding: 12px; gap: 10px; }
-  .stat .val { font-size: 22px; }
-  .stats .levelname, .stats .best { display: none; }
+  .stats .stat .val { font-size: 22px; }
   #nextCanvas { width: 56px; height: 56px; margin-top: 2px; }
   .hearts { font-size: 20px; }
   .log { max-width: 460px; width: 100%; margin: 0 auto; }
@@ -284,37 +285,7 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
 </header>
 
 <main class="app">
-  <aside class="panel stats" aria-label="Game status">
-    <div class="stat">
-      <div class="label">Score</div>
-      <div class="val" id="score">0</div>
-      <div class="sub best">Best: <span id="best">0</span></div>
-    </div>
-    <div class="stat">
-      <div class="label">Level</div>
-      <div class="val" id="level">1</div>
-      <div class="sub levelname" id="levelName">Halves, thirds, fourths, sixths</div>
-      <div class="progress" aria-hidden="true"><span id="levelBar"></span></div>
-    </div>
-    <div class="stat">
-      <div class="label">Round</div>
-      <div class="val" id="roundNo">1</div>
-      <div class="sub" id="roundSub">of 3</div>
-    </div>
-    <div class="stat">
-      <div class="label">Drops</div>
-      <div class="val" id="drops">0</div>
-    </div>
-  </aside>
-
   <section class="stage">
-    <div class="msg" id="msg" role="status" aria-live="polite">Build both columns to the same height.</div>
-    <div class="boardwrap"><canvas id="board" aria-label="Game board with two columns"></canvas>
-    </div>
-    <div class="totals" id="totals">
-      <div><b id="t0">0 parts</b></div>
-      <div><b id="t1">0 parts</b></div>
-    </div>
     <div class="pad">
       <button type="button" id="bLeft" aria-label="Move to left column"><span class="ic">◀</span>Left</button>
       <button type="button" id="bSoft" aria-label="Move down (hold)"><span class="ic">▼</span>Down</button>
@@ -322,6 +293,35 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
       <button type="button" id="bRight" aria-label="Move to right column"><span class="ic">▶</span>Right</button>
     </div>
     <button type="button" class="primary ready" id="readyBtn" hidden>Ready to Move On?</button>
+    <div class="msg" id="msg" role="status" aria-live="polite">Build both columns to the same height.</div>
+    <div class="boardwrap"><canvas id="board" aria-label="Game board with two columns"></canvas>
+    </div>
+    <div class="totals" id="totals">
+      <div><b id="t0">0 parts</b></div>
+      <div><b id="t1">0 parts</b></div>
+    </div>
+    <aside class="panel stats" aria-label="Game status">
+      <div class="stat">
+        <div class="label">Score</div>
+        <div class="val" id="score">0</div>
+        <div class="sub best">Best: <span id="best">0</span></div>
+      </div>
+      <div class="stat">
+        <div class="label">Level</div>
+        <div class="val" id="level">1</div>
+        <div class="sub levelname" id="levelName">Halves, thirds, fourths, sixths</div>
+        <div class="progress" aria-hidden="true"><span id="levelBar"></span></div>
+      </div>
+      <div class="stat">
+        <div class="label">Round</div>
+        <div class="val" id="roundNo">1</div>
+        <div class="sub" id="roundSub">of 3</div>
+      </div>
+      <div class="stat">
+        <div class="label">Drops</div>
+        <div class="val" id="drops">0</div>
+      </div>
+    </aside>
   </section>
 
   <aside class="panel log">
@@ -1020,7 +1020,7 @@ const colX = i => GUT + i * colW;          // left edge of column i (the margins
 function layout() {
   const narrow = innerWidth <= 860;
   const reserved = $('.top').offsetHeight + $('#msg').offsetHeight + $('#totals').offsetHeight + $('.pad').offsetHeight + 70
-    + (narrow ? $('.stats').offsetHeight + 14 : 0);
+    + $('.stats').offsetHeight + 14;
   partH = Math.floor(Math.max(18, Math.min(34, (innerHeight - reserved) / H_PARTS)));
   ch = partH * H_PARTS;
   GUT = innerWidth <= 420 ? 38 : 46;
