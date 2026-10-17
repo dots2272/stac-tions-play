@@ -243,7 +243,6 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
 #startPanel .lead { margin: 0; color: var(--ink); font-size: 18px; font-weight: 700; }
 .mode-steps { margin: 0; padding-left: 22px; font-weight: 400; color: var(--ink); }
 .mode-steps b { font-weight: 800; }
-.rules.steps { font-family: var(--display); font-weight: 700; font-size: 20px; line-height: 1.25; gap: 6px; padding-left: 26px; }
 .field { display: grid; gap: 6px; }
 .seg { display: flex; flex-wrap: wrap; gap: 6px; }
 .seg input { position: absolute; opacity: 0; pointer-events: none; }
@@ -393,15 +392,9 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
     <!-- page 2: how to play -->
     <div class="page" data-page="2">
       <p class="lead">How To Play:</p>
-      <ol class="rules steps">
-        <li>Look at the two fraction stacks.</li>
-        <li>Drop a stack on the <b>SHORTER</b> stack.</li>
-        <li>Look at the two stacks again. Drop on the <b>SHORTER</b> again.</li>
-        <li>Keep switching until they are the <b>SAME</b> height.</li>
-      </ol>
       <div class="page-btns">
-        <button class="primary" type="button" data-next>Next Page</button>
-        <button class="tutorial-btn" type="button" id="tutorialBtn">Interactive Tutorial</button>
+        <button class="tutorial-btn" type="button" id="tutorialBtn">First time? Do the Interactive Tutorial.</button>
+        <button class="primary" type="button" data-next>Returner? Go on to the Next Page.</button>
         <button class="secondary" type="button" data-skip>Skip Directions and Practice/Play!</button>
       </div>
     </div>
