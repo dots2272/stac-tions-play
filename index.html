@@ -276,6 +276,43 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
   .stats { grid-template-columns: repeat(2, auto); }
   .brand h1 { font-size: 22px; }
 }
+/* the Matches button only shows on phones, where the Matches panel is tucked away */
+#matchesBtn { display: none; }
+.top-btns { display: flex; gap: 8px; }
+.rotate { display: none; }
+/* phones: the whole game fits on one screen, with no keyboard help and no Down button */
+@media (max-width: 600px) {
+  .top { padding-block: 8px 0; }
+  .brand h1 { font-size: 22px; }
+  .logo { width: 18px; height: 28px; }
+  .app { padding-block: 6px 10px; gap: 10px; }
+  .stage { gap: 8px; }
+  .pad { grid-template-columns: repeat(3, 1fr); }
+  .pad #bSoft { display: none; }
+  .pad button { padding: 7px 4px; font-size: 15px; }
+  .pad button .ic { font-size: 18px; }
+  .msg { min-height: 40px; font-size: 15px; }
+  .totals { font-size: 15px; }
+  .stats { grid-template-columns: repeat(4, auto); padding: 8px 12px; gap: 6px; }
+  .stats .label { font-size: 10px; letter-spacing: 0.06em; }
+  .stats .stat .val { font-size: 18px; }
+  .stats .progress, .stats #roundSub { display: none; }
+  .app > .log { display: none; }
+  body.tutoring .stats { display: none; }
+  #matchesBtn { display: inline-block; }
+  .coach { padding: 8px 12px; gap: 4px; }
+  .coach-text { font-size: 18px; }
+  .coach-help { font-size: 14px; }
+}
+/* phones held sideways: ask for upright, where the tall columns fit */
+@media (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
+  .rotate { display: flex; position: fixed; inset: 0; z-index: 50; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+    padding: 24px; text-align: center; background: var(--bg); color: var(--ink); font-family: var(--display); font-weight: 800; font-size: 24px; }
+  .rotate .ic { font-size: 48px; line-height: 1; }
+}
+.matches-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.matches-list li { padding: 8px 10px; border-radius: 10px; background: var(--chip); font-weight: 700; font-size: 16px; }
+.matches-list .empty { background: none; padding: 0; font-weight: 400; color: var(--muted); font-size: 15px; }
 </style>
 </head>
 <body>
@@ -284,8 +321,12 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
     <svg class="logo" viewBox="0 0 22 34" aria-hidden="true"><rect x="1" y="17" width="20" height="16" fill="#F2735A"/><rect x="1" y="1" width="20" height="16" fill="#56A8F2"/><path d="M5 5L17 13M17 5L5 13" stroke="#161B27" stroke-width="2.4" stroke-linecap="round"/><rect x="1" y="1" width="20" height="32" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M1 17H21" stroke="currentColor" stroke-width="2"/></svg>
     <h1>Stac-Tions</h1>
   </div>
-  <button class="ghost-btn" id="pauseBtn" type="button">Pause</button>
+  <div class="top-btns">
+    <button class="ghost-btn" id="matchesBtn" type="button">Matches</button>
+    <button class="ghost-btn" id="pauseBtn" type="button">Pause</button>
+  </div>
 </header>
+<div class="rotate" role="alert"><span class="ic" aria-hidden="true">📱</span>Turn your phone upright to play.</div>
 
 <main class="app">
   <section class="stage">
@@ -454,6 +495,11 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
     </div>
   </div>
 
+  <div class="card" id="matchesPanel" role="dialog" aria-labelledby="matchesTitle" hidden>
+    <h2 id="matchesTitle">Matches</h2>
+    <ul class="matches-list" id="wholesList2"></ul>
+    <div class="actions"><button class="primary" id="matchesClose" type="button">Back to the Game</button></div>
+  </div>
   <div class="card" id="pausePanel" role="dialog" aria-labelledby="pauseTitle" hidden>
     <h2 id="pauseTitle">Paused</h2>
     <div class="actions">
@@ -868,8 +914,9 @@ function showPanel(which) {
   $('#welcomePanel').hidden = which !== 'welcome';
   $('#startPanel').hidden = which !== 'start';
   $('#pausePanel').hidden = which !== 'pause';
+  $('#matchesPanel').hidden = which !== 'matches';
   $('#roundBox').hidden = which !== 'round';
-  const focusEl = { welcome: '#welcomeBtn', pause: '#resumeBtn' }[which];
+  const focusEl = { welcome: '#welcomeBtn', pause: '#resumeBtn', matches: '#matchesClose' }[which];
   if (focusEl) setTimeout(() => $(focusEl).focus(), 0);
 }
 // the problems now live in the pop-up, so there is nothing to position on the board
@@ -903,6 +950,9 @@ function pause() {
 function resumeView() { G.paused = false; showPanel(null); $('#pauseBtn').textContent = 'Pause'; }
 $('#pauseBtn').addEventListener('click', () => { if (G && G.paused && !G.demo) resumeView(); else pause(); });
 $('#resumeBtn').addEventListener('click', resumeView);
+// phones: the Matches list opens over the game and closes back to it
+$('#matchesBtn').addEventListener('click', () => { if ($('#modal').hidden) { setSoft(false); showPanel('matches'); } });
+$('#matchesClose').addEventListener('click', () => showPanel(null));
 $('#restartBtn').addEventListener('click', start);
 $('#nextBtn').addEventListener('click', nextRound);
 $('#retryBtn').addEventListener('click', () => { newRound(true); resumeView(); });
@@ -944,7 +994,7 @@ const TUT = [null,
   { text: 'You did it! Both stacks are the <b>SAME</b> height.', help: 'Now you know how to play.' }];
 function showCoach(on) {
   if ($('#coach').hidden === !on) return;
-  $('#coach').hidden = !on; $('#msg').hidden = on;
+  $('#coach').hidden = !on; $('#msg').hidden = on; document.body.classList.toggle('tutoring', on);
   if (!on) $('#bDrop').classList.remove('tut-pulse');
   layout();
 }
@@ -957,6 +1007,7 @@ function tutStep(n) {
   $('#coachNext').hidden = n !== 1 && !done;
   $('#coachNext').textContent = done ? 'Next Page' : 'Next';
   $('#coachAgain').hidden = !done; $('#coachExit').hidden = done;
+  layout();   // the coach card changes height from step to step
   if (n === 1 || done) setTimeout(() => $('#coachNext').focus({ preventScroll: true }), 0);
 }
 function startTutorial() {
@@ -1024,8 +1075,9 @@ for (const d of ALL_D) $('#den' + d).addEventListener('change', () => {
 // ---------- HUD ----------
 function say(html, cls) { const m = $('#msg'); m.innerHTML = `<span>${html}</span>`; m.className = 'msg' + (cls ? ' ' + cls : ''); }
 function renderLog() {
-  $('#wholesList').innerHTML = G.log.length ? G.log.map(e => `<li>${e}</li>`).join('')
+  const html = G.log.length ? G.log.map(e => `<li>${e}</li>`).join('')
     : '<li class="empty">Your matches show up here.</li>';
+  $('#wholesList').innerHTML = html; $('#wholesList2').innerHTML = html;
 }
 function updateHUD() {
   $('#score').textContent = G.score;
@@ -1055,9 +1107,9 @@ let cw = 300, ch = 480, colW = 150, partH = 20, dpr = 1, GUT = 46;
 const colX = i => GUT + i * colW;          // left edge of column i (the margins sit outside both columns)
 function layout() {
   const narrow = innerWidth <= 860;
-  const reserved = $('.top').offsetHeight + $('#msg').offsetHeight + $('#coach').offsetHeight + $('#totals').offsetHeight + $('.pad').offsetHeight + 70
+  const reserved = $('.top').offsetHeight + $('#msg').offsetHeight + $('#coach').offsetHeight + $('#totals').offsetHeight + $('.pad').offsetHeight + (innerWidth <= 600 ? 52 : 70)
     + $('.stats').offsetHeight + 14;
-  partH = Math.floor(Math.max(18, Math.min(34, (innerHeight - reserved) / H_PARTS)));
+  partH = Math.floor(Math.max(innerWidth <= 600 ? 12 : 18, Math.min(34, (innerHeight - reserved) / H_PARTS)));
   ch = partH * H_PARTS;
   GUT = innerWidth <= 420 ? 38 : 46;
   const maxW = Math.max(200, $('.stage').clientWidth - 8 - GUT * 2);
@@ -1130,7 +1182,9 @@ function revealTimes() {
 const mini = $('#mini'), mctx = mini.getContext('2d');
 function drawMini() {
   if (!G || !G.flash || !G.kinds || $('#roundBox').hidden) return;
-  const h = G.flash.h, mp = Math.max(14, Math.min(32, Math.floor(400 / h))), mcol = 108, mg = 6;
+  // phones get a shorter picture so the problems fit below it
+  const phone = innerWidth <= 600, h = G.flash.h;
+  const mp = phone ? Math.max(8, Math.min(22, Math.floor(170 / h))) : Math.max(14, Math.min(32, Math.floor(400 / h))), mcol = phone ? 84 : 108, mg = 6;
   const W = mg * 2 + mcol * 2, H = mp * h + 20, r = Math.min(window.devicePixelRatio || 1, 2);
   if (mini.width !== W * r || mini.height !== H * r) {
     mini.width = W * r; mini.height = H * r; mini.style.width = W + 'px'; mini.style.height = H + 'px';
