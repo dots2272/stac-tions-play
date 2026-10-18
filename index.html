@@ -199,7 +199,7 @@ button { font: inherit; color: inherit; }
   font-weight: 700; font-size: 14px; cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: manipulation;
   display: flex; flex-direction: column; align-items: center; gap: 2px;
 }
-.pad button .ic { font-size: 20px; line-height: 1; }
+.pad button .ic { font-size: 10px; line-height: 1; }
 .pad button:active { background: var(--chip); border-color: var(--accent); }
 .pad .drop { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .pad .drop:active { background: var(--accent); filter: brightness(.92); }
@@ -291,7 +291,7 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
   .pad { grid-template-columns: repeat(3, 1fr); }
   .pad #bSoft { display: none; }
   .pad button { padding: 7px 4px; font-size: 15px; }
-  .pad button .ic { font-size: 18px; }
+  .pad button .ic { font-size: 9px; }
   .msg { min-height: 40px; font-size: 15px; }
   .totals { font-size: 15px; }
   .stats { grid-template-columns: repeat(4, auto); padding: 8px 12px; gap: 6px; }
@@ -529,6 +529,7 @@ const LEVELS = [
 const ROUNDS_PER_LEVEL = 3;
 const H_PARTS = 20;               // board height, in blocks (every part is one block tall)
 const DOWN_SPEED = 16;   // parts per second while Down is held (one speed for everyone)
+const DROP_SPEED = 28;   // parts per second after Drop: quick, but slow enough to watch the stack fall
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const gcd = (a, b) => b ? gcd(b, a % b) : a;
@@ -833,7 +834,8 @@ function update(dt) {
   a.xv += (a.col - a.xv) * Math.min(1, dt * 16);
   if (a.bump > 0) a.bump -= dt;
   // no automatic fall: the stack only moves down while the player holds Down
-  if (a.soft) { if (wrongCol(a.col)) reject(a); else a.y -= DOWN_SPEED * dt; }
+  if (a.falling) a.y -= DROP_SPEED * dt;
+  else if (a.soft) { if (wrongCol(a.col)) reject(a); else a.y -= DOWN_SPEED * dt; }
   const floor = colH(a.col);
   if (a.y <= floor) { a.y = floor; land(); }
 }
@@ -844,7 +846,7 @@ const playing = () => G && !G.paused && !G.done && !G.demo && !(G.tut && G.tut.s
 function moveTo(t) {
   if (!playing() || t < 0 || t > 1) return;
   if (!G.active) return spawnAt(t);
-  const a = G.active; if (t === a.col) return;
+  const a = G.active; if (t === a.col || a.falling) return;
   // the stack takes the shape of the column it is over, so it must fit there
   if (a.y < colH(t) - 1e-9 || !fits(t)) { a.bump = 0.25; return; }
   a.col = t; G.lastCol = t;
@@ -862,8 +864,9 @@ function hardDrop() {
   if (!playing()) return;
   if (!G.active) spawnAt(G.lastCol);
   const a = G.active; if (!a) return;
+  if (a.falling) return;
   if (wrongCol(a.col)) return reject(a);
-  a.y = colH(a.col); land();
+  if (reduceMotion) { a.y = colH(a.col); land(); } else a.falling = true;
 }
 function setSoft(on) {
   softHeld = on;
