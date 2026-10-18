@@ -193,7 +193,7 @@ button { font: inherit; color: inherit; }
 #combineMsg { margin: 0; font-size: 15px; color: var(--muted); }
 #combineMsg.good { color: var(--good); font-weight: 700; }
 #combineMsg.bad { color: var(--danger); font-weight: 700; }
-.pad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; width: 100%; max-width: 360px; }
+.pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; max-width: 360px; }
 .pad button {
   border: 2px solid var(--line); background: var(--panel); border-radius: 12px; padding: 10px 4px;
   font-weight: 700; font-size: 14px; cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: manipulation;
@@ -288,8 +288,6 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
   .logo { width: 18px; height: 28px; }
   .app { padding-block: 6px 10px; gap: 10px; }
   .stage { gap: 8px; }
-  .pad { grid-template-columns: repeat(3, 1fr); }
-  .pad #bSoft { display: none; }
   .pad button { padding: 7px 4px; font-size: 15px; }
   .pad button .ic { font-size: 9px; }
   .msg { min-height: 40px; font-size: 15px; }
@@ -333,7 +331,6 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
   <section class="stage">
     <div class="pad">
       <button type="button" id="bLeft" aria-label="Move to left column"><span class="ic">◀</span>Left</button>
-      <button type="button" id="bSoft" aria-label="Move down (hold)"><span class="ic">▼</span>Down</button>
       <button type="button" id="bDrop" class="drop" aria-label="Drop now"><span class="ic">⤓</span>Drop</button>
       <button type="button" id="bRight" aria-label="Move to right column"><span class="ic">▶</span>Right</button>
     </div>
@@ -908,9 +905,6 @@ board.addEventListener('pointerdown', e => {
 $('#bLeft').addEventListener('click', () => moveTo(0));
 $('#bRight').addEventListener('click', () => moveTo(1));
 $('#bDrop').addEventListener('click', hardDrop);
-const soft = $('#bSoft');
-soft.addEventListener('pointerdown', e => { e.preventDefault(); setSoft(true); });
-['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => soft.addEventListener(ev, () => setSoft(false)));
 
 // ---------- panels ----------
 function showPanel(which) {
