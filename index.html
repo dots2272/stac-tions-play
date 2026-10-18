@@ -181,7 +181,7 @@ button { font: inherit; color: inherit; }
 .board-combine #combineMsg.bad { color: #FF8A7A; }
 .combine-work .tick { font-size: 26px; font-weight: 800; color: var(--good); visibility: hidden; }
 .combine-work.done .tick { visibility: visible; }
-.xhint { font-family: var(--display); font-weight: 800; font-size: 25.5px; line-height: 1.15; letter-spacing: 0.02em; color: #F6B23C; }
+.xhint { font-family: var(--display); font-weight: 800; font-size: 22px; line-height: 1.15; letter-spacing: 0.02em; color: #F6B23C; }
 .xhint .minus { color: #FF5A4E; }
 .combine-work.done button { display: none; }
 .combine-work.done input { border-color: var(--good); color: var(--good); }
@@ -417,7 +417,7 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
           <div class="eqline"></div>
           <button type="button" class="primary small">Check</button>
           <span class="tick" aria-hidden="true">✓</span>
-          <span class="xhint">(HINT: MOST COLUMN's X's <span class="minus">minus</span> LEAST COLUMN's X's)</span>
+          <span class="xhint">(HINT: COLUMN WITH MOST X's <span class="minus">minus</span> COLUMN WITH LEAST X's)</span>
           <div class="dblocks" role="group" aria-label="How the answer simplifies"></div>
         </div>
         <p id="combineMsg" aria-live="polite"></p>
