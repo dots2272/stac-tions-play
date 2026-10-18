@@ -581,7 +581,7 @@ function newRound(same) {
   // the first falling stack appears over the taller column, so the player has to compare and move it
   G.lastCol = colH(0) > colH(1) ? 0 : 1;
   const [k0, k1] = G.kinds;
-  say('Which column is shorter?', '');
+  say('Which column is shorter? Stack it!', '');
   updateHUD();
 }
 function newGame() {
@@ -614,7 +614,7 @@ function land() {
   G.cols[i].count++; G.drops++;
   const h0 = colH(0), h1 = colH(1);
   if (h0 === h1) return matched(h0);
-  say('Which column is shorter now?', '');
+  say('Which column is shorter now? Stack it!', '');
   if (G.tut) tutStep(Math.min(4, G.tut.step + 1));
   if (!fits(0) && !fits(1)) outOfRoom();
   updateHUD();
