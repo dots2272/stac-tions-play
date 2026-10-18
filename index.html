@@ -398,7 +398,7 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
     <div class="work-grid">
       <canvas id="mini" aria-label="The two capped columns"></canvas>
       <div class="work-main">
-        <div class="roundhead"><h2 id="roundTitle">Same height!</h2><div class="stars" id="stars" aria-label="Stars"></div></div>
+        <div class="roundhead"><h2 id="roundTitle">Same height = same denominator!</h2><div class="stars" id="stars" aria-label="Stars"></div></div>
         <p class="summary" id="roundSummary"></p>
         <p class="note" id="roundNote"></p>
       <div class="combine board-combine" id="combine" hidden>
@@ -655,7 +655,7 @@ function renderResult() {
   const pts = 100 * stars * (S.mode === 'practice' ? 1 : G.level);
   // what the match means: a common denominator, and equivalent fractions on it
   const eq = k => `${frHTML(k.n, k.d)} = ${frHTML(k.n * h / k.d, h)}`;
-  $('#roundTitle').textContent = 'Same height!';
+  $('#roundTitle').textContent = 'Same height = same denominator!';
   $('#stars').innerHTML = '★'.repeat(stars) + `<span class="off">${'★'.repeat(3 - stars)}</span>`;
   $('#stars').setAttribute('aria-label', `${stars} of 3 stars`);
   $('#roundSummary').innerHTML = `${eq(k0)} and ${eq(k1)}`;
