@@ -193,16 +193,6 @@ button { font: inherit; color: inherit; }
 #combineMsg { margin: 0; font-size: 15px; color: var(--muted); }
 #combineMsg.good { color: var(--good); font-weight: 700; }
 #combineMsg.bad { color: var(--danger); font-weight: 700; }
-.pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; max-width: 360px; }
-.pad button {
-  border: 2px solid var(--line); background: var(--panel); border-radius: 12px; padding: 10px 4px;
-  font-weight: 700; font-size: 14px; cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: manipulation;
-  display: flex; flex-direction: column; align-items: center; gap: 2px;
-}
-.pad button .ic { font-size: 10px; line-height: 1; }
-.pad button:active { background: var(--chip); border-color: var(--accent); }
-.pad .drop { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-.pad .drop:active { background: var(--accent); filter: brightness(.92); }
 /* shown after a match, before the add/subtract pop-up */
 .ready { width: 100%; max-width: 360px; font-size: 22px; padding: 14px 18px; animation: readyIn 0.4s ease both; }
 @keyframes readyIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
@@ -216,11 +206,9 @@ button { font: inherit; color: inherit; }
 .coach-help.bad { color: var(--danger); font-weight: 700; }
 .coach-btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 2px; }
 .coach-btns button { font-size: 16px; padding: 8px 16px; }
-.pad .drop.tut-pulse, .pad button.tut-pulse { animation: tutPulse 0.9s ease-in-out infinite; }
-@keyframes tutPulse { 50% { box-shadow: 0 0 0 5px #F6B23C; } }
 .tutorial-btn { background: #F6B23C; color: #18202E; border: 0; border-radius: 12px; padding: 12px 22px; font-family: var(--display); font-weight: 800; font-size: 20px; cursor: pointer; }
 .tutorial-btn:hover { filter: brightness(1.05); }
-@media (prefers-reduced-motion: reduce) { .coach { animation: none; } .pad .drop.tut-pulse, .pad button.tut-pulse { animation: none; box-shadow: 0 0 0 4px #F6B23C; } }
+@media (prefers-reduced-motion: reduce) { .coach { animation: none; } }
 
 .log { display: grid; gap: 14px; }
 .log h2 { font-family: var(--display); font-size: 19px; margin: 0; line-height: 1.1; }
@@ -283,8 +271,6 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
   .logo { width: 18px; height: 28px; }
   .app { padding-block: 6px 10px; gap: 10px; }
   .stage { gap: 8px; }
-  .pad button { padding: 7px 4px; font-size: 15px; }
-  .pad button .ic { font-size: 9px; }
   .msg { min-height: 40px; font-size: 15px; }
   .totals { font-size: 15px; }
   .stats { grid-template-columns: repeat(4, auto); padding: 8px 12px; gap: 6px; }
@@ -324,11 +310,6 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
 
 <main class="app">
   <section class="stage">
-    <div class="pad">
-      <button type="button" id="bLeft" aria-label="Move to left column"><span class="ic">◀</span>Left</button>
-      <button type="button" id="bDrop" class="drop" aria-label="Drop now"><span class="ic">⤓</span>Drop</button>
-      <button type="button" id="bRight" aria-label="Move to right column"><span class="ic">▶</span>Right</button>
-    </div>
     <button type="button" class="primary ready" id="readyBtn" hidden>Ready to Move On?</button>
     <div class="msg" id="msg" role="status" aria-live="polite">Build both columns to the same height.</div>
     <div class="coach" id="coach" role="status" aria-live="polite" hidden>
@@ -376,12 +357,10 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
     <ul class="wholes-list" id="wholesList"><li class="empty">Your matches show up here.</li></ul>
     <div class="label">Keys</div>
     <div class="keys">
-      <span><kbd>←</kbd> <kbd>→</kbd></span><span>Pick a column</span>
-      <span><kbd>↓</kbd></span><span>Lower</span>
-      <span><kbd>Space</kbd></span><span>Drop</span>
+      <span><kbd>←</kbd> <kbd>→</kbd></span><span>Stack on a column</span>
       <span><kbd>P</kbd></span><span>Pause</span>
     </div>
-    <div class="hint">Or tap a column.</div>
+    <div class="hint">Or tap the shorter column.</div>
   </aside>
 </main>
 
@@ -464,8 +443,7 @@ const LEVELS = [
 ];
 const ROUNDS_PER_LEVEL = 3;
 const H_PARTS = 20;               // board height, in blocks (every part is one block tall)
-const DOWN_SPEED = 16;   // parts per second while Down is held (one speed for everyone)
-const DROP_SPEED = 28;   // parts per second after Drop: quick, but slow enough to watch the stack fall
+const DROP_SPEED = 28;   // parts per second as a stack falls: quick, but slow enough to watch
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const gcd = (a, b) => b ? gcd(b, a % b) : a;
@@ -518,10 +496,8 @@ function newRound(same) {
   G.par = L / G.kinds[0].d + L / G.kinds[1].d;
   // every round opens with one stack in each column (unlike denominators, so different heights)
   G.cols = [{ count: 1 }, { count: 1 }];
-  G.drops = 0; G.mistakes = 0; G.combined = {}; G.simpStep = {}; G.picOp = null; G.revealed = {}; G.active = null; G.wait = 0.6; G.done = false; G.flash = null; G.toPanel = null;
+  G.drops = 0; G.mistakes = 0; G.warned = false; G.shake = null; G.combined = {}; G.simpStep = {}; G.picOp = null; G.revealed = {}; G.active = null; G.wait = 0.6; G.done = false; G.flash = null; G.toPanel = null;
   showRound(false);
-  // the first falling stack appears over the taller column, so the player has to compare and move it
-  G.lastCol = colH(0) > colH(1) ? 0 : 1;
   const [k0, k1] = G.kinds;
   say('Which column is shorter? Stack it!', '');
   updateHUD();
@@ -538,21 +514,20 @@ function demoGame() {
   G.demo = true; G.paused = true;
   G.kinds = [{ n: 1, d: 2 }, { n: 1, d: 3 }];
   G.cols = [{ count: 2 }, { count: 1 }];
-  G.active = { col: 1, xv: 1, y: 19, soft: false, bump: 0 };
+  G.active = { col: 1, y: 19 };
   updateHUD();
 }
 
-// stacks only appear when the player asks for one, above the column they chose
-function spawnAt(t) {
-  const col = fits(t) ? t : 1 - t;
+// a stack only appears when the player presses the shorter column, and then falls onto it
+function spawnAt(col) {
   if (!fits(col)) return outOfRoom();
-  G.active = { col, xv: col, y: H_PARTS - G.kinds[col].d, soft: false, bump: 0 };
-  G.lastCol = col;
+  G.active = { col, y: H_PARTS - G.kinds[col].d };
+  if (reduceMotion) { G.active.y = colH(col); land(); }
 }
 
 function land() {
   const a = G.active, i = a.col;
-  G.active = null; G.wait = 0.25;
+  G.active = null; G.wait = 0.25; G.warned = false;
   G.cols[i].count++; G.drops++;
   const h0 = colH(0), h1 = colH(1);
   if (h0 === h1) return matched(h0);
@@ -768,49 +743,29 @@ function update(dt) {
     if (G.toPanel != null) { G.toPanel -= dt; if (G.toPanel <= 0) { G.toPanel = null; G.flash ? showReady(true) : showRound(true); } }
     return;
   }
-  if (!G.active) return;   // nothing falls until the player presses Left, Right, Down or Drop
+  if (G.shake) { G.shake.t -= dt; if (G.shake.t <= 0) G.shake = null; }
+  if (!G.active) return;   // nothing falls until the player presses the shorter column
   const a = G.active;
-  a.xv += (a.col - a.xv) * Math.min(1, dt * 16);
-  if (a.bump > 0) a.bump -= dt;
-  // no automatic fall: the stack only moves down while the player holds Down
-  if (a.falling) a.y -= DROP_SPEED * dt;
-  else if (a.soft) { if (wrongCol(a.col)) reject(a); else a.y -= DOWN_SPEED * dt; }
+  a.y -= DROP_SPEED * dt;
   const floor = colH(a.col);
   if (a.y <= floor) { a.y = floor; land(); }
 }
 
 // ---------- input ----------
-let softHeld = false;
 const playing = () => G && !G.paused && !G.done && !G.demo && !(G.tut && G.tut.step === 1);
-function moveTo(t) {
-  if (!playing() || t < 0 || t > 1) return;
-  if (!G.active) return spawnAt(t);
-  const a = G.active; if (t === a.col || a.falling) return;
-  // the stack takes the shape of the column it is over, so it must fit there
-  if (a.y < colH(t) - 1e-9 || !fits(t)) { a.bump = 0.25; return; }
-  a.col = t; G.lastCol = t;
-  a.y = Math.min(a.y, H_PARTS - G.kinds[t].d);
-}
-// a stack may only go on the shorter column (either one when they are level)
+// a stack may only go on the shorter column
 const wrongCol = i => colH(i) > colH(1 - i);
-function reject(a) {
-  a.bump = 0.3; a.soft = false;
-  if (!a.warned) { a.warned = true; G.mistakes++; }
-  say('That side is taller. Try the other side.', 'bad');
-  if (G.tut) tutHelp('That side is taller. Try the glowing SHORTER side.', true);
+// pressing a column: the shorter one gets a stack straight away; the taller one gets a reminder
+function pressCol(t) {
+  if (!playing() || G.active) return;
+  if (wrongCol(t)) return reject(t);
+  spawnAt(t);
 }
-function hardDrop() {
-  if (!playing()) return;
-  if (!G.active) spawnAt(G.lastCol);
-  const a = G.active; if (!a) return;
-  if (a.falling) return;
-  if (wrongCol(a.col)) return reject(a);
-  if (reduceMotion) { a.y = colH(a.col); land(); } else a.falling = true;
-}
-function setSoft(on) {
-  softHeld = on;
-  if (on && playing() && !G.active) spawnAt(G.lastCol);
-  if (G && G.active) G.active.soft = on;
+function reject(t) {
+  if (!G.warned) { G.warned = true; G.mistakes++; }
+  G.shake = { col: t, t: 0.45 };
+  say('Oops! That stack is taller. Press on the <b>SHORTER</b> stack first.', 'bad');
+  if (G.tut) tutHelp('Oops! That stack is taller. Press on the glowing SHORTER stack first.', true);
 }
 
 addEventListener('keydown', e => {
@@ -830,23 +785,17 @@ addEventListener('keydown', e => {
     }
     return;
   }
-  if (['ArrowLeft', 'ArrowRight', 'ArrowDown', 'ArrowUp', ' '].includes(k)) e.preventDefault();
-  if (k === 'ArrowLeft' || k === 'a' || k === 'A') moveTo(G.active ? G.active.col - 1 : 0);
-  else if (k === 'ArrowRight' || k === 'd' || k === 'D') moveTo(G.active ? G.active.col + 1 : 1);
-  else if (k === 'ArrowDown' || k === 's' || k === 'S') setSoft(true);
-  else if (k === ' ' || k === 'ArrowUp' || k === 'w' || k === 'W') { if (!e.repeat) hardDrop(); }
+  if (['ArrowLeft', 'ArrowRight'].includes(k)) e.preventDefault();
+  if (k === 'ArrowLeft' || k === 'a' || k === 'A') { if (!e.repeat) pressCol(0); }
+  else if (k === 'ArrowRight' || k === 'd' || k === 'D') { if (!e.repeat) pressCol(1); }
   else if (k === 'p' || k === 'P' || k === 'Escape') pause();
 });
-addEventListener('keyup', e => { if (['ArrowDown', 's', 'S'].includes(e.key)) setSoft(false); });
 
 const board = $('#board');
 board.addEventListener('pointerdown', e => {
   const r = board.getBoundingClientRect();
-  moveTo(e.clientX - r.left < r.width / 2 ? 0 : 1);
+  pressCol(e.clientX - r.left < r.width / 2 ? 0 : 1);
 });
-$('#bLeft').addEventListener('click', () => moveTo(0));
-$('#bRight').addEventListener('click', () => moveTo(1));
-$('#bDrop').addEventListener('click', hardDrop);
 
 // ---------- panels ----------
 function showPanel(which) {
@@ -865,12 +814,11 @@ function placeCombine() {}
 // after a match: the board stays in view until the player taps "Ready to Move On?"
 function showReady(on) {
   $('#readyBtn').hidden = !on;
-  if (on) { $('.pad').hidden = true; setTimeout(() => $('#readyBtn').focus({ preventScroll: true }), 0); }
+  if (on) setTimeout(() => $('#readyBtn').focus({ preventScroll: true }), 0);
 }
 $('#readyBtn').addEventListener('click', () => { showReady(false); showRound(true); });
 function showRound(on) {
   showReady(false);
-  $('.pad').hidden = on;
   $('#combine').hidden = !(on && G && G.flash);
   if (!on) { if (!$('#roundBox').hidden) showPanel(null); return; }
   showPanel('round');
@@ -884,14 +832,14 @@ document.querySelectorAll('.combine-work').forEach(row => {
 });
 function pause() {
   if (!G || G.done || G.demo || G.paused) return;
-  G.paused = true; setSoft(false); showPanel('pause');
+  G.paused = true; showPanel('pause');
   $('#pauseBtn').textContent = 'Resume';
 }
 function resumeView() { G.paused = false; showPanel(null); $('#pauseBtn').textContent = 'Pause'; }
 $('#pauseBtn').addEventListener('click', () => { if (G && G.paused && !G.demo) resumeView(); else pause(); });
 $('#resumeBtn').addEventListener('click', resumeView);
 // phones: the Matches list opens over the game and closes back to it
-$('#matchesBtn').addEventListener('click', () => { if ($('#modal').hidden) { setSoft(false); showPanel('matches'); } });
+$('#matchesBtn').addEventListener('click', () => { if ($('#modal').hidden) showPanel('matches'); });
 $('#matchesClose').addEventListener('click', () => showPanel(null));
 $('#restartBtn').addEventListener('click', start);
 $('#nextBtn').addEventListener('click', nextRound);
@@ -913,14 +861,13 @@ function start() { newGame(); resumeView(); }
 // ---------- interactive tutorial: the How To Play steps, done for real on a 1/2 and 2/3 round ----------
 const TUT = [null,
   { text: 'Look at the two fraction stacks.', help: 'Which one is shorter? Tap Next when you are ready.' },
-  { text: 'Drop a stack on the <b>SHORTER</b> stack.', help: 'Tap the glowing column, then tap Drop.' },
-  { text: 'Look at the two stacks again. Drop on the <b>SHORTER</b> again.', help: 'The other side is shorter now. Tap it, then tap Drop.' },
+  { text: 'Drop a stack on the <b>SHORTER</b> stack.', help: 'Tap the glowing SHORTER column. The stack drops on its own.' },
+  { text: 'Look at the two stacks again. Drop on the <b>SHORTER</b> again.', help: 'The other side is shorter now. Tap it.' },
   { text: 'Keep switching until they are the <b>SAME</b> height.', help: 'Always drop on the glowing SHORTER column.' },
   { text: 'You did it! Both stacks are the <b>SAME</b> height.', help: 'Now you know how to play.' }];
 function showCoach(on) {
   if ($('#coach').hidden === !on) return;
   $('#coach').hidden = !on; $('#msg').hidden = on; document.body.classList.toggle('tutoring', on);
-  if (!on) $('#bDrop').classList.remove('tut-pulse');
   layout();
 }
 function tutHelp(html, bad) { const h = $('#coachHelp'); h.innerHTML = html; h.className = 'coach-help' + (bad ? ' bad' : ''); }
@@ -947,11 +894,6 @@ $('#tutorialBtn').addEventListener('click', startTutorial);
 $('#coachNext').addEventListener('click', () => { if (G.tut.step === 1) tutStep(2); else start(); });
 $('#coachAgain').addEventListener('click', startTutorial);
 $('#coachExit').addEventListener('click', endTutorial);
-// the Drop button glows once the stack is over the shorter column
-function tutTick() {
-  const on = !!(G && G.tut && G.tut.step > 1 && !G.done && G.active && !wrongCol(G.active.col));
-  $('#bDrop').classList.toggle('tut-pulse', on);
-}
 document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
 
 
@@ -990,7 +932,7 @@ let cw = 300, ch = 480, colW = 150, partH = 20, dpr = 1, GUT = 46;
 const colX = i => GUT + i * colW;          // left edge of column i (the margins sit outside both columns)
 function layout() {
   const narrow = innerWidth <= 860;
-  const reserved = $('.top').offsetHeight + $('#msg').offsetHeight + $('#coach').offsetHeight + $('#totals').offsetHeight + $('.pad').offsetHeight + (innerWidth <= 600 ? 52 : 70)
+  const reserved = $('.top').offsetHeight + $('#msg').offsetHeight + $('#coach').offsetHeight + $('#totals').offsetHeight + (innerWidth <= 600 ? 52 : 70)
     + $('.stats').offsetHeight + 14;
   partH = Math.floor(Math.max(innerWidth <= 600 ? 12 : 18, Math.min(34, (innerHeight - reserved) / H_PARTS)));
   ch = partH * H_PARTS;
@@ -1225,13 +1167,18 @@ function draw() {
     ctx.restore();
   }
   if (G.tut && !G.done) drawTutGlow();
+  // a press on the taller column: a quick red outline on it
+  if (G.shake) {
+    const i = G.shake.col, top = ch - colH(i) * partH, dx = reduceMotion ? 0 : Math.sin(G.shake.t * 60) * 4;
+    ctx.save(); ctx.lineWidth = 4; ctx.strokeStyle = `rgba(255,90,78,${Math.min(1, G.shake.t / 0.15)})`;
+    rr(ctx, colX(i) + 5 + dx, top - 6, colW - 10, ch - top + 3, 10); ctx.stroke(); ctx.restore();
+  }
   const a = G.active;
   if (a) {
     const k = G.kinds[a.col];
-    const sx = a.bump > 0 && !reduceMotion ? Math.sin(a.bump * 70) * 4 : 0;
     const yt = ch - (a.y + k.d) * partH + 1, h = k.d * partH - 2;
     ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.45)'; ctx.shadowBlur = 14; ctx.shadowOffsetY = 4;
-    drawStack(ctx, k, GUT + a.xv * colW + pad + sx, yt, pw, h, { stroke: 'rgba(255,255,255,0.95)' });
+    drawStack(ctx, k, colX(a.col) + pad, yt, pw, h, { stroke: 'rgba(255,255,255,0.95)' });
     ctx.restore();
     if (S.labels) drawMarginLabel(a.col, k, yt, h, true);
   }
@@ -1250,7 +1197,7 @@ function draw() {
 let last = performance.now();
 function frame(t) {
   const dt = Math.min(0.05, (t - last) / 1000); last = t;
-  update(dt); draw(); drawMini(); tutTick();
+  update(dt); draw(); drawMini();
   requestAnimationFrame(frame);
 }
 
