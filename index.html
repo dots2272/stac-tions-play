@@ -1147,10 +1147,16 @@ function draw() {
       }
       // then the X's: the top k.n parts of each stack, counted bottom to top up the column, each number right on its X
       if (ct) for (let x = 0; x < k.n; x++) {
-        const num = j * k.n + x + 1, total = G.cols[i].count * k.n;
-        if (!reduceMotion && fl.t <= ct[i].xStart + (num - 1) * X_STEP) continue;
+        const num = j * k.n + x + 1, total = G.cols[i].count * k.n, at = ct[i].xStart + (num - 1) * X_STEP;
+        if (!reduceMotion && fl.t <= at) continue;
         const big = num === total && (reduceMotion || fl.t >= ct[i].xDone);
-        const py = yt + h - (k.d - k.n + x + 0.5) * partH;
+        const py = yt + h - (k.d - k.n + x + 0.5) * partH, age = fl.t - at;
+        // the X's piece flashes as it is counted, like the pieces did
+        if (!reduceMotion && age < 0.3) {
+          ctx.save(); ctx.globalAlpha = 0.8 * (1 - age / 0.3);
+          rr(ctx, colX(i) + pad - 2, py - partH / 2 - 1, pw + 4, partH + 2, 4); ctx.fillStyle = '#FFFFFF'; ctx.fill();
+          ctx.restore();
+        }
         drawCount(colX(i) + colW / 2, py, num, '#F6B23C', big ? Math.max(13, partH * 0.55) : Math.max(10, partH * 0.42));
       }
     }
