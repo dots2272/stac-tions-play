@@ -576,7 +576,7 @@ function matched(h) {
   G.log.unshift(`${eqv(k0)} &nbsp; ${eqv(k1)}`);
   G.log = G.log.slice(0, 7); renderLog();
   renderResult();
-  G.toPanel = 1.3;
+  G.toPanel = reduceMotion ? 1.3 : countTimes()[1].xDone + 0.6;   // Ready to Move On? waits for the counting
   if (G.tut) { G.toPanel = null; tutStep(5); }   // the tutorial ends at the match, with no pop-up
   updateHUD();
 }
@@ -1051,6 +1051,15 @@ function drawMarginLabel(side, k, yt, h, bright) {
 
 // practice mode, after the cap: count the left column's stacks, fly the count into its box as the multiplier,
 // then do the same for the right column. Times are seconds after the cap starts to fall.
+// after a match the stacks are counted (1, 2, 3 ...), left column then right,
+// and then the X's in each column, which add up to the new fraction's top number
+const X_STEP = 0.22;
+function countTimes() {
+  const out = [{}, {}]; let t = 0.6;
+  for (let i = 0; i < 2; i++) { out[i].start = t; out[i].done = t + G.cols[i].count * 0.4; t = out[i].done + 0.3; }
+  for (let i = 0; i < 2; i++) { out[i].xStart = t; out[i].xDone = t + G.cols[i].count * G.kinds[i].n * X_STEP; t = out[i].xDone + 0.3; }
+  return out;
+}
 // the small copy of the two capped columns in the pop-up.
 // It borrows the board's drawing helpers by pointing the shared drawing state at its own canvas for a moment.
 const mini = $('#mini'), mctx = mini.getContext('2d');
@@ -1085,6 +1094,15 @@ function drawMini() {
   }
 }
 
+const COLC = ['#5EE0F0', '#FF8AD8'];   // left and right column colors on the board
+function drawCount(x, y, n, color, r = 11) {
+  ctx.save();
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fillStyle = color; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = '#161B27'; ctx.stroke();
+  ctx.fillStyle = '#161B27'; ctx.font = `800 ${Math.round(r * 1.2)}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(n, x, y + 1);
+  ctx.restore();
+}
 // the box above the cap: n/d = n'/h, drawn as large as the column allows
 function drawEquiv(cx, capTop, capBottom, k, h, maxW, glow = 0) {
   const toks = [{ f: [String(k.n), String(k.d)], col: '#FFFFFF' }, { t: '=' }, { f: [String(k.n * h / k.d), String(h)], col: '#F6B23C' }];
@@ -1163,12 +1181,26 @@ function draw() {
   if (!G || !G.kinds) return;
   const pad = Math.max(14, colW * 0.14), pw = colW - pad * 2;
   const fl = G.flash, fk = fl ? Math.min(1, fl.t / 1.2) : 0;
+  const ct = fl ? countTimes() : null;
   for (let i = 0; i < 2; i++) {
     const k = G.kinds[i];
     for (let j = 0; j < G.cols[i].count; j++) {
       const yt = ch - (j + 1) * k.d * partH + 1, h = k.d * partH - 2;
       drawStack(ctx, k, colX(i) + pad, yt, pw, h, { flash: fl && !reduceMotion ? Math.sin(Math.PI * fk) * 0.45 : 0 });
       if (S.labels) drawMarginLabel(i, k, yt, h, false);
+      // once the cap is on, count the stacks one by one; the last badge (the number of stacks) is bigger
+      if (ct && (reduceMotion || fl.t > ct[i].start + j * 0.4)) {
+        const last = j === G.cols[i].count - 1 && (reduceMotion || fl.t >= ct[i].done);
+        drawCount(colX(i) + pad, yt + h / 2, j + 1, COLC[i], last ? Math.max(14, partH * 0.6) : Math.max(11, partH * 0.45));
+      }
+      // then the X's: the top k.n parts of each stack, counted bottom to top up the column, on the stack's right edge
+      if (ct) for (let x = 0; x < k.n; x++) {
+        const num = j * k.n + x + 1, total = G.cols[i].count * k.n;
+        if (!reduceMotion && fl.t <= ct[i].xStart + (num - 1) * X_STEP) continue;
+        const big = num === total && (reduceMotion || fl.t >= ct[i].xDone);
+        const py = yt + h - (k.d - k.n + x + 0.5) * partH;
+        drawCount(colX(i) + colW - pad, py, num, '#F6B23C', big ? Math.max(13, partH * 0.55) : Math.max(9, partH * 0.38));
+      }
     }
   }
   // the cap: one solid lid across both columns at the matching height, held until the next round
@@ -1182,9 +1214,10 @@ function draw() {
     ctx.shadowColor = 'transparent';
     ctx.lineWidth = 2.5; ctx.strokeStyle = '#161B27'; ctx.stroke();
     ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.fillRect(x0 + capH / 2, y - capH + 2, x1 - x0 - capH, 2);
-    if (drop >= 1) {
-      // each column's fraction renamed with the common denominator, written above the cap
-      const glow = reduceMotion ? 0 : Math.max(0, 1 - (fl.t - 0.45) / 1.2);
+    // once the counting is done, each column's fraction renamed with the common denominator, written above the cap
+    const shown = reduceMotion ? 0 : ct[1].xDone;
+    if (drop >= 1 && fl.t >= shown) {
+      const glow = reduceMotion ? 0 : Math.max(0, 1 - (fl.t - shown) / 1.2);
       for (let i = 0; i < 2; i++) drawEquiv(colX(i) + colW / 2, y - capH, y, G.kinds[i], fl.h, colW - 4, glow);
     }
     ctx.restore();
