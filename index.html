@@ -500,6 +500,7 @@ function newRound(same) {
   showRound(false);
   const [k0, k1] = G.kinds;
   say('Which column is shorter? Stack it!', '');
+  $('#msg').hidden = !$('#coach').hidden;
   updateHUD();
 }
 function newGame() {
@@ -546,7 +547,7 @@ function matched(h) {
   if (G.score > best) { best = G.score; try { localStorage.setItem('fs-best', String(best)); } catch (e) {} }
   G.flash = { h, t: 0 };
   addFx(`+${pts}`, cw / 2, ch - h * partH - 50, '#FFFFFF', 30, 1.3);
-  say('Same height!', 'good');
+  $('#msg').hidden = true;   // no message bar after a match: the board and Ready to Move On? say it
   const eqv = k => `${frHTML(k.n, k.d)} = ${frHTML(k.n * h / k.d, h)}`;
   G.log.unshift(`${eqv(k0)} &nbsp; ${eqv(k1)}`);
   G.log = G.log.slice(0, 7); renderLog();
