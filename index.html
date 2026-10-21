@@ -443,7 +443,7 @@ const LEVELS = [
 ];
 const ROUNDS_PER_LEVEL = 3;
 const H_PARTS = 20;               // board height, in blocks (every part is one block tall)
-const DROP_SPEED = 28;   // parts per second as a stack falls: quick, but slow enough to watch
+const DROP_SPEED = 22;   // parts per second as a stack falls: quick, but slow enough to watch
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const gcd = (a, b) => b ? gcd(b, a % b) : a;
@@ -996,7 +996,7 @@ function drawMarginLabel(side, k, yt, h, bright) {
 // then do the same for the right column. Times are seconds after the cap starts to fall.
 // after a match every piece in each column is counted (1, 2, 3 ... up to the height, the new denominator),
 // left column then right, and then the X's, which add up to the new fraction's top number
-const PIECE_STEP = 0.16, X_STEP = 0.22;
+const PIECE_STEP = 0.2, X_STEP = 0.27;
 function countTimes() {
   const out = [{}, {}]; let t = 0.6;
   for (let i = 0; i < 2; i++) { out[i].start = t; out[i].done = t + colH(i) * PIECE_STEP; t = out[i].done + 0.3; }
