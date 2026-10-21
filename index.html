@@ -1137,13 +1137,13 @@ function draw() {
         const big = num === total && (reduceMotion || fl.t >= ct[i].done);
         drawCount(colX(i) + pad, yt + h - (p + 0.5) * partH, num, COLC[i], big ? Math.max(13, partH * 0.55) : Math.max(9, partH * 0.38));
       }
-      // then the X's: the top k.n parts of each stack, counted bottom to top up the column, on the stack's right edge
+      // then the X's: the top k.n parts of each stack, counted bottom to top up the column, each number right on its X
       if (ct) for (let x = 0; x < k.n; x++) {
         const num = j * k.n + x + 1, total = G.cols[i].count * k.n;
         if (!reduceMotion && fl.t <= ct[i].xStart + (num - 1) * X_STEP) continue;
         const big = num === total && (reduceMotion || fl.t >= ct[i].xDone);
         const py = yt + h - (k.d - k.n + x + 0.5) * partH;
-        drawCount(colX(i) + colW - pad, py, num, '#F6B23C', big ? Math.max(13, partH * 0.55) : Math.max(9, partH * 0.38));
+        drawCount(colX(i) + colW / 2, py, num, '#F6B23C', big ? Math.max(13, partH * 0.55) : Math.max(10, partH * 0.42));
       }
     }
   }
