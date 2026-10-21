@@ -576,7 +576,7 @@ function matched(h) {
   G.log.unshift(`${eqv(k0)} &nbsp; ${eqv(k1)}`);
   G.log = G.log.slice(0, 7); renderLog();
   renderResult();
-  G.toPanel = S.mode === 'practice' && !reduceMotion ? revealTimes()[1].land + 0.6 : 1.3;
+  G.toPanel = 1.3;
   if (G.tut) { G.toPanel = null; tutStep(5); }   // the tutorial ends at the match, with no pop-up
   updateHUD();
 }
@@ -1049,17 +1049,8 @@ function drawMarginLabel(side, k, yt, h, bright) {
   ctx.restore();
 }
 
-const COLC = ['#5EE0F0', '#FF8AD8'];   // left and right column colors on the board
 // practice mode, after the cap: count the left column's stacks, fly the count into its box as the multiplier,
 // then do the same for the right column. Times are seconds after the cap starts to fall.
-function revealTimes() {
-  const out = []; let t = 0.6;
-  for (let i = 0; i < 2; i++) {
-    const start = t, done = start + G.cols[i].count * 0.4, land = done + 0.6;
-    out.push({ start, done, land }); t = land + 0.4;
-  }
-  return out;
-}
 // the small copy of the two capped columns in the pop-up.
 // It borrows the board's drawing helpers by pointing the shared drawing state at its own canvas for a moment.
 const mini = $('#mini'), mctx = mini.getContext('2d');
@@ -1093,69 +1084,40 @@ function drawMini() {
     ({ ctx, cw, ch, colW, partH, GUT, dpr } = saved);
   }
 }
-function drawCount(x, y, n, color, r = 11) {
-  ctx.save();
-  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.fillStyle = color; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = '#161B27'; ctx.stroke();
-  ctx.fillStyle = '#161B27'; ctx.font = `800 ${Math.round(r * 1.2)}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(n, x, y + 1);
-  ctx.restore();
-}
 
-// the box above the cap: n/d = n'/h. In practice mode the multiplication sits in between, (n × c)/(d × c),
-// where c is the number of stacks in that column, drawn in the column's color. Shrinks its font to fit the column.
-function drawEquiv(cx, capTop, capBottom, k, h, c, maxW, o = {}) {
-  const prac = S.mode === 'practice', color = o.color || '#9FC3FF';
-  const toks = [{ f: [String(k.n), String(k.d)], col: '#FFFFFF' }, { t: '=' }];
-  if (prac) toks.push({ mul: true }, { t: '=', after: true });
-  toks.push({ f: [String(k.n * h / k.d), String(h)], col: '#F6B23C', after: prac });
-  const ms = `× ${c}`;
-  let fs = 15, widths = [], total = 0;
+// the box above the cap: n/d = n'/h, drawn as large as the column allows
+function drawEquiv(cx, capTop, capBottom, k, h, maxW, glow = 0) {
+  const toks = [{ f: [String(k.n), String(k.d)], col: '#FFFFFF' }, { t: '=' }, { f: [String(k.n * h / k.d), String(h)], col: '#F6B23C' }];
+  let fs = 30, widths = [], total = 0;
   for (;;) {
     ctx.font = `800 ${fs}px ${FONT}`;
-    widths = toks.map(t => t.mul ? Math.max(ctx.measureText(`${k.n} ${ms}`).width, ctx.measureText(`${k.d} ${ms}`).width) + 8
-      : t.f ? Math.max(ctx.measureText(t.f[0]).width, ctx.measureText(t.f[1]).width) + 6 : ctx.measureText(t.t).width + 8);
-    total = widths.reduce((a, b) => a + b, 0) + 14;
-    if (total <= maxW || fs <= 10) break;
+    widths = toks.map(t => t.f ? Math.max(ctx.measureText(t.f[0]).width, ctx.measureText(t.f[1]).width) + 10 : ctx.measureText(t.t).width + 14);
+    total = widths.reduce((a, b) => a + b, 0) + 18;
+    if (total <= maxW || fs <= 12) break;
     fs--;
   }
-  const bh = fs * 2.6 + 8;
-  let top = capTop - bh - 6;
-  if (top < 2) top = capBottom + 6;   // no room above a cap at the very top
-  const cy = top + bh / 2, spots = [];
+  const bh = fs * 2.5 + 14;
+  let top = capTop - bh - 8;
+  if (top < 2) top = capBottom + 8;   // no room above a cap at the very top
+  const cy = top + bh / 2, lw = Math.max(2, fs / 9);
   let x = cx - total / 2;
   ctx.save();
-  if (o.pulse > 0) { ctx.shadowColor = color; ctx.shadowBlur = 22 * o.pulse; }
-  rr(ctx, x, top, total, bh, 10); ctx.fillStyle = 'rgba(14,18,28,0.94)'; ctx.fill();
-  ctx.shadowBlur = 0;
-  ctx.lineWidth = 2 + 2 * (o.pulse || 0); ctx.strokeStyle = o.pulse > 0 ? color : '#F6B23C'; ctx.stroke();
-  ctx.textBaseline = 'middle';
-  x += 7;
+  ctx.shadowOffsetY = 0; ctx.shadowColor = '#F6B23C'; ctx.shadowBlur = 8 + 22 * glow;
+  rr(ctx, x, top, total, bh, 12); ctx.fillStyle = 'rgba(14,18,28,0.96)'; ctx.fill();
+  ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
+  ctx.lineWidth = 3 + 2 * glow; ctx.strokeStyle = '#F6B23C'; ctx.stroke();
+  ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
+  x += 9;
   toks.forEach((t, n) => {
     const mid = x + widths[n] / 2;
-    ctx.globalAlpha = t.after && o.after != null ? o.after : 1;
-    ctx.textAlign = 'center';
-    if (t.mul) {
-      for (const [base, yy] of [[k.n, cy - fs * 0.62 + 1], [k.d, cy + fs * 0.66 + 1]]) {
-        const bw = ctx.measureText(`${base} `).width, mw = ctx.measureText(ms).width, xw = ctx.measureText('× ').width;
-        const sx = mid - (bw + mw) / 2, nx = sx + bw + xw, nw = ctx.measureText(String(c)).width;
-        ctx.textAlign = 'left';
-        ctx.fillStyle = '#FFFFFF'; ctx.fillText(`${base} `, sx, yy);
-        ctx.fillStyle = color; ctx.fillText('×', sx + bw, yy);
-        spots.push({ x: nx + nw / 2, y: yy });
-        if (o.num !== false) ctx.fillText(String(c), nx, yy);
-        else { ctx.strokeStyle = color; ctx.lineWidth = 1.5; rr(ctx, nx - 2, yy - fs * 0.5, nw + 4, fs, 3); ctx.stroke(); }
-      }
-      ctx.fillStyle = '#FFFFFF'; ctx.fillRect(x + 2, cy - 1, widths[n] - 4, 2);
-    } else if (t.f) {
+    if (t.f) {
       ctx.fillStyle = t.col;
       ctx.fillText(t.f[0], mid, cy - fs * 0.62 + 1); ctx.fillText(t.f[1], mid, cy + fs * 0.66 + 1);
-      ctx.fillRect(x + 2, cy - 1, widths[n] - 4, 2);
+      ctx.fillRect(x + 3, cy - lw / 2, widths[n] - 6, lw);
     } else { ctx.fillStyle = '#FFFFFF'; ctx.fillText(t.t, mid, cy + 1); }
     x += widths[n];
   });
   ctx.restore();
-  return { spots };
 }
 
 // tutorial: step 1 outlines both stacks; later steps outline the shorter column and label it
@@ -1201,19 +1163,12 @@ function draw() {
   if (!G || !G.kinds) return;
   const pad = Math.max(14, colW * 0.14), pw = colW - pad * 2;
   const fl = G.flash, fk = fl ? Math.min(1, fl.t / 1.2) : 0;
-  const rv = fl && S.mode === 'practice' ? revealTimes() : null;
   for (let i = 0; i < 2; i++) {
     const k = G.kinds[i];
     for (let j = 0; j < G.cols[i].count; j++) {
       const yt = ch - (j + 1) * k.d * partH + 1, h = k.d * partH - 2;
       drawStack(ctx, k, colX(i) + pad, yt, pw, h, { flash: fl && !reduceMotion ? Math.sin(Math.PI * fk) * 0.45 : 0 });
       if (S.labels) drawMarginLabel(i, k, yt, h, false);
-      // practice mode: count the stacks one by one once the cap is on (1, 2, 3 ... stacks)
-      if (rv && (reduceMotion || fl.t > rv[i].start + j * 0.4)) {
-        // the last badge is the number of stacks: it grows once the count is done
-        const last = j === G.cols[i].count - 1 && (reduceMotion || fl.t >= rv[i].done);
-        drawCount(colX(i) + pad, yt + h / 2, j + 1, COLC[i], last ? 14 : 11);
-      }
     }
   }
   // the cap: one solid lid across both columns at the matching height, held until the next round
@@ -1229,25 +1184,8 @@ function draw() {
     ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.fillRect(x0 + capH / 2, y - capH + 2, x1 - x0 - capH, 2);
     if (drop >= 1) {
       // each column's fraction renamed with the common denominator, written above the cap
-      for (let i = 0; i < 2; i++) {
-        const c = G.cols[i].count;
-        let o = {};
-        if (rv) {
-          const r = rv[i], t = fl.t, landed = reduceMotion || t >= r.land;
-          o = { color: COLC[i], num: landed, after: reduceMotion ? 1 : landed ? Math.min(1, (t - r.land) / 0.3) : 0,
-                pulse: reduceMotion || !landed ? 0 : Math.max(0, 1 - (t - r.land) / 0.9) };
-        }
-        const box = drawEquiv(colX(i) + colW / 2, y - capH, y, G.kinds[i], fl.h, c, colW - 6, o);
-        // the count flies from the top stack's badge into both multiplier slots
-        if (rv && !reduceMotion && fl.t >= rv[i].done && fl.t < rv[i].land) {
-          const k = G.kinds[i], p = (fl.t - rv[i].done) / (rv[i].land - rv[i].done), e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
-          const sx = colX(i) + pad, sy = ch - c * k.d * partH + k.d * partH / 2;
-          for (const sp of box.spots) {
-            const fx = sx + (sp.x - sx) * e, fy = sy + (sp.y - sy) * e - Math.sin(Math.PI * e) * 30;
-            drawCount(fx, fy, c, COLC[i], 14 - 5 * e);
-          }
-        }
-      }
+      const glow = reduceMotion ? 0 : Math.max(0, 1 - (fl.t - 0.45) / 1.2);
+      for (let i = 0; i < 2; i++) drawEquiv(colX(i) + colW / 2, y - capH, y, G.kinds[i], fl.h, colW - 4, glow);
     }
     ctx.restore();
   }
