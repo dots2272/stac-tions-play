@@ -995,7 +995,7 @@ function drawMarginLabel(side, k, yt, h, bright) {
 // then do the same for the right column. Times are seconds after the cap starts to fall.
 // after a match every piece in each column is counted (1, 2, 3 ... up to the height, the new denominator),
 // left column then right, and then the X's, which add up to the new fraction's top number
-const PIECE_STEP = 0.12, X_STEP = 0.22;
+const PIECE_STEP = 0.16, X_STEP = 0.22;
 function countTimes() {
   const out = [{}, {}]; let t = 0.6;
   for (let i = 0; i < 2; i++) { out[i].start = t; out[i].done = t + colH(i) * PIECE_STEP; t = out[i].done + 0.3; }
@@ -1130,12 +1130,20 @@ function draw() {
       const yt = ch - (j + 1) * k.d * partH + 1, h = k.d * partH - 2;
       drawStack(ctx, k, colX(i) + pad, yt, pw, h, { flash: fl && !reduceMotion ? Math.sin(Math.PI * fk) * 0.45 : 0 });
       if (S.labels) drawMarginLabel(i, k, yt, h, false);
-      // once the cap is on, count every piece up the column, on the left edge; the last one (the height) is bigger
+      // once the cap is on, count every piece up the column: each piece flashes as it is counted, and its number
+      // goes beside the stack on the outer side of the column; the last one (the height) is bigger
       if (ct) for (let p = 0; p < k.d; p++) {
-        const num = j * k.d + p + 1, total = colH(i);
-        if (!reduceMotion && fl.t <= ct[i].start + (num - 1) * PIECE_STEP) continue;
+        const num = j * k.d + p + 1, total = colH(i), at = ct[i].start + (num - 1) * PIECE_STEP;
+        if (!reduceMotion && fl.t <= at) continue;
+        const py = yt + h - (p + 0.5) * partH, age = fl.t - at;
+        if (!reduceMotion && age < 0.3) {
+          ctx.save(); ctx.globalAlpha = 0.8 * (1 - age / 0.3);
+          rr(ctx, colX(i) + pad - 2, py - partH / 2 - 1, pw + 4, partH + 2, 4); ctx.fillStyle = '#FFFFFF'; ctx.fill();
+          ctx.restore();
+        }
         const big = num === total && (reduceMotion || fl.t >= ct[i].done);
-        drawCount(colX(i) + pad, yt + h - (p + 0.5) * partH, num, COLC[i], big ? Math.max(13, partH * 0.55) : Math.max(9, partH * 0.38));
+        const nx = i ? colX(1) + colW - pad / 2 : colX(0) + pad / 2;
+        drawCount(nx, py, num, COLC[i], big ? Math.max(13, partH * 0.55) : Math.max(9, partH * 0.4));
       }
       // then the X's: the top k.n parts of each stack, counted bottom to top up the column, each number right on its X
       if (ct) for (let x = 0; x < k.n; x++) {
