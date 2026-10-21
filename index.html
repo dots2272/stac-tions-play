@@ -242,15 +242,10 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
 .page-btns { display: grid; gap: 10px; justify-items: stretch; max-width: 360px; width: 100%; }
 .page-btns button { width: 100%; }
 #startPanel .lead { margin: 0; color: var(--ink); font-size: 18px; font-weight: 700; }
-.mode-steps { margin: 0; padding-left: 22px; font-weight: 400; color: var(--ink); }
-.mode-steps b { font-weight: 800; }
 .field { display: grid; gap: 6px; }
 .seg { display: flex; flex-wrap: wrap; gap: 6px; }
 .seg input { position: absolute; opacity: 0; pointer-events: none; }
 .seg label { border: 2px solid var(--line); border-radius: 10px; padding: 6px 12px; font-weight: 700; cursor: pointer; background: var(--panel); }
-.all-chip { border: 2px solid #C98A12; border-radius: 10px; padding: 6px 14px; font-weight: 800; cursor: pointer; background: #F6B23C; color: #161B27; }
-.all-chip:hover { filter: brightness(1.05); }
-.all-chip[aria-pressed="true"] { box-shadow: inset 0 0 0 2px #161B27; }
 .seg input:checked + label { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--panel)); }
 .seg input:focus-visible + label { outline: 3px solid var(--accent); outline-offset: 2px; }
 .checks { display: grid; gap: 6px; }
@@ -422,7 +417,6 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
         <div class="actions">
           <button class="primary" id="nextBtn" type="button">Next round</button>
           <button class="primary" id="retryBtn" type="button">Try again</button>
-          <button class="secondary" id="settings2Btn" type="button">Settings</button>
         </div>
       </div>
     </div>
@@ -433,61 +427,7 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
       <p class="lead">How To Play:</p>
       <div class="page-btns">
         <button class="tutorial-btn" type="button" id="tutorialBtn">First time? Do the Interactive Tutorial.</button>
-        <button class="primary" type="button" data-next>Returner? Press here.</button>
-      </div>
-    </div>
-    <!-- page 3: mode -->
-    <div class="page" data-page="3" hidden>
-    <div class="field">
-      <div class="label">Mode</div>
-      <ol class="mode-steps">
-        <li>Do a few <b>Practice</b> rounds before <b>Play</b> rounds.</li>
-      </ol>
-      <div class="seg">
-        <input type="radio" name="mode" id="modePractice" value="practice"><label for="modePractice">Practice</label>
-        <input type="radio" name="mode" id="modeLevels" value="levels"><label for="modeLevels">Play</label>
-      </div>
-      <div class="hint" id="modeHint"></div>
-    </div>
-      <div class="page-btns">
-        <button class="primary" type="button" data-next>Next Page</button>
-        <button class="secondary" type="button" data-prev>Previous Page</button>
-        <button class="secondary" type="button" data-skip>Skip Directions and Practice/Play!</button>
-      </div>
-    </div>
-    <!-- page 4: fractions (Practice only) -->
-    <div class="page" data-page="4" hidden>
-    <div class="field" id="denomField">
-      <div class="label">Fractions</div>
-      <ol class="mode-steps">
-        <li>Choose <b>All</b> for random fractions each time.</li>
-        <li>Pick one or more denominators for <b>Focused</b>.</li>
-      </ol>
-      <div class="seg" id="denoms"></div>
-      <div class="hint" id="denomHint">Pick at least one.</div>
-    </div>
-      <div class="page-btns">
-        <button class="primary" type="button" data-next>Next Page</button>
-        <button class="secondary" type="button" data-prev>Previous Page</button>
-        <button class="secondary" type="button" data-skip>Skip Directions and Practice/Play!</button>
-      </div>
-    </div>
-    <!-- page 5: answers and display, then play -->
-    <div class="page" data-page="5" hidden>
-    <div class="field">
-      <div class="label">Answers</div>
-      <div class="seg">
-        <input type="radio" name="simplify" id="simpYes" value="yes"><label for="simpYes">Simplify</label>
-        <input type="radio" name="simplify" id="simpNo" value="no"><label for="simpNo">Do not simplify</label>
-      </div>
-    </div>
-    <div class="checks">
-      <label><input type="checkbox" id="optLabels"> Fraction labels</label>
-      <label><input type="checkbox" id="optTotals"> Column heights</label>
-    </div>
-      <div class="page-btns">
-        <button class="primary" id="playBtn" type="button">Play</button>
-        <button class="secondary" type="button" data-prev>Previous Page</button>
+        <button class="primary" type="button" id="returnBtn">Returner? Press here.</button>
       </div>
     </div>
   </div>
@@ -502,7 +442,7 @@ kbd { font-family: var(--body); font-weight: 700; font-size: 12px; color: var(--
     <div class="actions">
       <button class="primary" id="resumeBtn" type="button">Resume</button>
       <button class="secondary" id="restartBtn" type="button">Restart</button>
-      <button class="secondary" id="settingsBtn" type="button">Settings</button>
+      <button class="secondary" id="settingsBtn" type="button">How To Play</button>
     </div>
   </div>
 
@@ -536,9 +476,12 @@ const plural = (k, w) => `${k} ${w}${k === 1 ? '' : 's'}`;
 // ---------- settings ----------
 const S = { mode: 'practice', labels: true, totals: true, denoms: [2, 3, 4], simplify: false };
 try { Object.assign(S, JSON.parse(localStorage.getItem('fs-settings') || '{}')); } catch (e) {}
+// every game is Practice with all the fractions (the Mode and Fractions pages were removed)
+S.mode = 'practice'; S.denoms = ALL_D.slice();
+// and always simplifies, with fraction labels and column heights on (the Answers page was removed)
+S.simplify = true; S.labels = true; S.totals = true;
 let best = 0;
 try { best = +localStorage.getItem('fs-best') || 0; } catch (e) {}
-const saveSettings = () => { try { localStorage.setItem('fs-settings', JSON.stringify(S)); } catch (e) {} };
 
 // ---------- game state ----------
 let G = null;
@@ -953,33 +896,18 @@ $('#matchesClose').addEventListener('click', () => showPanel(null));
 $('#restartBtn').addEventListener('click', start);
 $('#nextBtn').addEventListener('click', nextRound);
 $('#retryBtn').addEventListener('click', () => { newRound(true); resumeView(); });
-// the directions screen is split into pages: 2 = how to play, 3 = mode, 4 = fractions (Practice only), 5 = answers and Play
+// the directions screen has one page (2 = how to play): the tutorial, or straight into a game
 function showStartPage(n) {
   document.querySelectorAll('#startPanel .page').forEach(pg => { pg.hidden = +pg.dataset.page !== n; });
   const first = $(`#startPanel .page[data-page="${n}"] .page-btns .primary`);
   if (first) setTimeout(() => first.focus({ preventScroll: true }), 0);
   $('#startPanel').scrollTop = 0; $('#modal').scrollTop = 0;
 }
-document.querySelectorAll('#startPanel [data-next]').forEach(b => b.addEventListener('click', () => {
-  const n = +b.closest('.page').dataset.page;
-  showStartPage(n === 3 && S.mode !== 'practice' ? 5 : n + 1);
-}));
-// back one page (from Answers in Play mode, back past the Fractions page to Mode)
-document.querySelectorAll('#startPanel [data-prev]').forEach(b => b.addEventListener('click', () => {
-  const n = +b.closest('.page').dataset.page;
-  showStartPage(n === 5 && S.mode !== 'practice' ? 3 : n - 1);
-}));
-// skip straight into a game with the current settings (Practice unless the player chose Play)
-document.querySelectorAll('#startPanel [data-skip]').forEach(b => b.addEventListener('click', () => $('#playBtn').click()));
-const toSettings = () => { syncForm(); showPanel('start'); showStartPage(3); };
-// the very first screen: one button that leads to the directions and settings
-$('#welcomeBtn').addEventListener('click', () => { syncForm(); showPanel('start'); showStartPage(2); });
-$('#settingsBtn').addEventListener('click', toSettings);
-$('#settings2Btn').addEventListener('click', toSettings);
-$('#playBtn').addEventListener('click', () => {
-  if (S.mode === 'practice' && !pairsFor({ d: S.denoms, cap: H_PARTS }).length) { showStartPage(4); $('#denomHint').classList.add('warn'); return; }
-  start();
-});
+const toHowTo = () => { showPanel('start'); showStartPage(2); };
+// the very first screen: one button that leads to How To Play
+$('#welcomeBtn').addEventListener('click', toHowTo);
+$('#settingsBtn').addEventListener('click', toHowTo);
+$('#returnBtn').addEventListener('click', start);
 function start() { newGame(); resumeView(); }
 
 // ---------- interactive tutorial: the How To Play steps, done for real on a 1/2 and 2/3 round ----------
@@ -1002,7 +930,7 @@ function tutStep(n) {
   $('#coachStep').textContent = done ? 'Tutorial complete' : `Step ${n} of 4`;
   $('#coachText').innerHTML = st.text; tutHelp(st.help);
   $('#coachNext').hidden = n !== 1 && !done;
-  $('#coachNext').textContent = done ? 'Next Page' : 'Next';
+  $('#coachNext').textContent = done ? 'Start Playing!' : 'Next';
   $('#coachAgain').hidden = !done; $('#coachExit').hidden = done;
   layout();   // the coach card changes height from step to step
   if (n === 1 || done) setTimeout(() => $('#coachNext').focus({ preventScroll: true }), 0);
@@ -1014,11 +942,11 @@ function startTutorial() {
   G.tut = { step: 1 };
   resumeView(); showCoach(true); tutStep(1); updateHUD();
 }
-function endTutorial(page) { demoGame(); syncForm(); showPanel('start'); showStartPage(page); }
+function endTutorial() { demoGame(); toHowTo(); }
 $('#tutorialBtn').addEventListener('click', startTutorial);
-$('#coachNext').addEventListener('click', () => { if (G.tut.step === 1) tutStep(2); else endTutorial(3); });
+$('#coachNext').addEventListener('click', () => { if (G.tut.step === 1) tutStep(2); else start(); });
 $('#coachAgain').addEventListener('click', startTutorial);
-$('#coachExit').addEventListener('click', () => endTutorial(2));
+$('#coachExit').addEventListener('click', endTutorial);
 // the Drop button glows once the stack is over the shorter column
 function tutTick() {
   const on = !!(G && G.tut && G.tut.step > 1 && !G.done && G.active && !wrongCol(G.active.col));
@@ -1026,48 +954,6 @@ function tutTick() {
 }
 document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
 
-// settings form
-$('#denoms').innerHTML = '<button type="button" class="all-chip" id="denAll" aria-pressed="false">All</button>'
-  + ALL_D.map(d => `<input type="checkbox" id="den${d}" value="${d}"><label for="den${d}">${NAMES[d]}</label>`).join('');
-// "All" picks every fraction; it shows a check while all of them are picked
-function updateAllChip() {
-  const all = S.denoms.length === ALL_D.length;
-  $('#denAll').setAttribute('aria-pressed', String(all));
-  $('#denAll').textContent = all ? 'All ✓' : 'All';
-}
-$('#denAll').addEventListener('click', () => {
-  S.denoms = ALL_D.slice();
-  for (const d of ALL_D) $('#den' + d).checked = true;
-  saveSettings(); updateDenomHint(); updateAllChip();
-});
-function syncForm() {
-  $('#modeLevels').checked = S.mode === 'levels';
-  $('#modePractice').checked = S.mode === 'practice';
-  $('#simpYes').checked = !!S.simplify; $('#simpNo').checked = !S.simplify;
-  $('#optLabels').checked = S.labels; $('#optTotals').checked = S.totals;
-  for (const d of ALL_D) $('#den' + d).checked = S.denoms.includes(d);
-  updateAllChip();
-  $('#denomField').hidden = S.mode !== 'practice';
-  $('#modeHint').textContent = S.mode === 'practice' ? '' : `New fractions every ${ROUNDS_PER_LEVEL} rounds.`;
-  $('#modeHint').hidden = S.mode === 'practice';
-  updateDenomHint();
-}
-function updateDenomHint() {
-  const h = $('#denomHint');
-  h.classList.remove('warn');
-  if (!S.denoms.length) { h.textContent = 'Pick at least one.'; return; }
-  if (S.denoms.length === 1) { h.textContent = `Every round uses ${NAMES[S.denoms[0]]}, paired with another fraction.`; return; }
-  h.textContent = pairsFor({ d: S.denoms, cap: H_PARTS }).length
-    ? ''
-    : 'These are too tall to match. Add halves.';
-}
-document.querySelectorAll('input[name=mode]').forEach(i => i.addEventListener('change', () => { S.mode = i.value; saveSettings(); syncForm(); }));
-document.querySelectorAll('input[name=simplify]').forEach(i => i.addEventListener('change', () => { S.simplify = i.value === 'yes'; saveSettings(); }));
-$('#optLabels').addEventListener('change', e => { S.labels = e.target.checked; saveSettings(); });
-$('#optTotals').addEventListener('change', e => { S.totals = e.target.checked; saveSettings(); updateHUD(); });
-for (const d of ALL_D) $('#den' + d).addEventListener('change', () => {
-  S.denoms = ALL_D.filter(x => $('#den' + x).checked); saveSettings(); updateDenomHint(); updateAllChip();
-});
 
 // ---------- HUD ----------
 function say(html, cls) { const m = $('#msg'); m.innerHTML = `<span>${html}</span>`; m.className = 'msg' + (cls ? ' ' + cls : ''); }
@@ -1398,7 +1284,7 @@ function frame(t) {
 function boot(data) {
   layout();
   if (data && data.G && data.G.kinds && !data.G.demo && !data.G.tut) {
-    G = data.G; renderLog(); updateHUD(); syncForm();
+    G = data.G; renderLog(); updateHUD();
     if (G.done) {
       // a finished round comes back with its cap and result, ready to replay
       G.paused = false; G.toPanel = null; renderResult(); showPanel(null); showRound(true);
@@ -1406,7 +1292,7 @@ function boot(data) {
       G.paused = true; showPanel('pause'); $('#pauseBtn').textContent = 'Resume';
     }
   } else {
-    demoGame(); syncForm(); showPanel('welcome');
+    demoGame(); showPanel('welcome');
   }
   requestAnimationFrame(frame);
   if (document.fonts) document.fonts.ready.then(layout);
